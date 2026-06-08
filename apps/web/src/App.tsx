@@ -22,7 +22,7 @@ function App() {
 
     async function loadRepos() {
       try {
-        const response = await fetch('/api/repos', { signal: controller.signal })
+        const response = await fetch('/api/repos', { credentials: 'include', signal: controller.signal })
 
         if (!response.ok) {
           throw new Error(`API returned ${response.status}`)

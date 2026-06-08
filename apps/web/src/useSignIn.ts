@@ -10,7 +10,8 @@ export function useSignIn() {
         if (!address) throw new Error("wallet not connected");
 
         const nonceResponse = await fetch(
-            `/api/auth/nonce?address=${encodeURIComponent(address)}`
+            `/api/auth/nonce?address=${encodeURIComponent(address)}`,
+            { credentials: "include" },
         );
         if (!nonceResponse.ok) throw new Error("nonce request failed");
 
@@ -30,9 +31,9 @@ export function useSignIn() {
         const signature = await signMessageAsync({message});
         const res = await fetch(
             `/api/auth/verify`,
-            { method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({message, signature}) },
+            { method: "POST", credentials: "include", headers: {"content-type": "application/json"}, body: JSON.stringify({message, signature}) },
         );
         if (!res.ok) throw new Error("sign-in failed");
-        return await res.json() as { ok: true };
+        return await res.json() as { ok: true; address: `0x${string}` };
     }
 }
