@@ -1,7 +1,7 @@
 import fastify from "fastify";
 import { exit } from "node:process";
 import cors from "@fastify/cors";
-import { createPublicClient, http, isAddress, parseAbiItem } from "viem";
+import { createPublicClient, http, isAddress, parseAbiItem, erc20Abi } from "viem";
 import { sepolia } from "viem/chains";
 import { httpErrors } from "@fastify/sensible";
 import { generateNonce, SiweMessage } from "siwe";
@@ -15,8 +15,12 @@ const DEFAULT_LIST_BLOCK_RANGE      = 50_000n;
 const ALLOWED_ORIGINS               = ["http://localhost:5173"];
 const SIWE_DOMAIN                   = process.env.SIWE_DOMAIN ?? "localhost:5173";
 const SESSION_KEY                   = process.env.SESSION_KEY ?? randomBytes(32);
+const GATE_TOKEN_ADDRESS            = process.env.GATE_TOKEN_ADDRESS as `0x${string}`;
+const GATE_TOKEN_MIN_BALANCE        = process.env.GATE_TOKEN_MIN_BALANCE ?? 1;
 
-if (!RIK_ADDRESS) die(new Error("RIK contract address is not defined"));
+// server can't start with these
+if (!RIK_ADDRESS) die(new Error("RIK contract address is missing"));
+if (!GATE_TOKEN_ADDRESS) die(new Error("gate token address is missing"));
 
 // address -> nonce (single-use)
 // all address must be stored normalized in lower case here
@@ -88,6 +92,7 @@ app.post<{ Body: { message?: string; signature?: string } | undefined }>("/api/a
         nonce: expectedNonce,
     });
     if (!result.success) throw httpErrors.unauthorized("bad signature");
+    if (!(await checkGate(siwe.address as `0x${string}`))) throw httpErrors.unauthorized("insufficient $FREECODE balance");
     req.session.set("address", siwe.address as `0x${string}`);
     return { ok: true, address: siwe.address };
 });
@@ -134,6 +139,16 @@ function registerOrigins(origins: string[]): void {
     if (process.env.ALLOWED_ORIGINS && Array.isArray(parsed)) origins = origins.concat(parsed);
     for (const origin of origins) app.register(cors, {origin, credentials: true});
     return;
+}
+
+async function checkGate(address: `0x${string}`): Promise<boolean> {
+    const balance = await client.readContract({
+        address: GATE_TOKEN_ADDRESS,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [address],
+    });
+    return balance >= GATE_TOKEN_MIN_BALANCE;
 }
 
 function die(err: any): never {
