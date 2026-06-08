@@ -8,13 +8,13 @@ import { generateNonce, SiweMessage } from "siwe";
 import secureSession from "@fastify/secure-session";
 import { randomBytes } from 'node:crypto'
 
-const APP_NAME = "registry-api";
-const RIK_ADDRESS = process.env.CONTRACT_ADDRESS as `0x${string}`;
-const RPC_URL = process.env.RPC_URL ?? "https://ethereum-sepolia-rpc.publicnode.com";
-const DEFAULT_LIST_BLOCK_RANGE = 50_000n;
-const ALLOWED_ORIGINS = ["http://localhost:5173"];
-const SIWE_DOMAIN = process.env.SIWE_DOMAIN ?? "localhost:5173";
-const SESSION_KEY = process.env.SESSION_KEY ?? randomBytes(32);
+const APP_NAME                      = "registry-api";
+const RIK_ADDRESS                   = process.env.CONTRACT_ADDRESS as `0x${string}`;
+const RPC_URL                       = process.env.RPC_URL ?? "https://ethereum-sepolia-rpc.publicnode.com";
+const DEFAULT_LIST_BLOCK_RANGE      = 50_000n;
+const ALLOWED_ORIGINS               = ["http://localhost:5173"];
+const SIWE_DOMAIN                   = process.env.SIWE_DOMAIN ?? "localhost:5173";
+const SESSION_KEY                   = process.env.SESSION_KEY ?? randomBytes(32);
 
 if (!RIK_ADDRESS) die(new Error("RIK contract address is not defined"));
 
