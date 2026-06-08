@@ -1,121 +1,95 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useEffect, useState } from 'react'
+import { ConnectButton } from './ConnectButton'
 import './App.css'
 
+type Repo = {
+  repoId: string;
+  registrant: `0x${string}`;
+  githubOwnerId: number;
+  registeredAt: number;
+}
+
+type LoadState =
+  | { status: 'loading' }
+  | { status: 'loaded'; repos: Repo[] }
+  | { status: 'error'; message: string }
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [state, setState] = useState<LoadState>({ status: 'loading' })
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadRepos() {
+      try {
+        const response = await fetch('/api/repos', { signal: controller.signal })
+
+        if (!response.ok) {
+          throw new Error(`API returned ${response.status}`)
+        }
+
+        setState({ status: 'loaded', repos: await response.json() as Repo[] })
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        setState({
+          status: 'error',
+          message: err instanceof Error ? err.message : 'Unable to load repos',
+        })
+      }
+    }
+
+    void loadRepos()
+
+    return () => controller.abort()
+  }, [])
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <main className="registry">
+      <header className="registry-header">
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
+          <p className="eyebrow">Sepolia Registry</p>
+          <h1>RIK Registry</h1>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        <ConnectButton />
+      </header>
 
-      <div className="ticks"></div>
+      {state.status === 'loading' && <p className="status">Loading repos...</p>}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      {state.status === 'error' && (
+        <p className="status error" role="alert">
+          {state.message}
+        </p>
+      )}
+
+      {state.status === 'loaded' && state.repos.length === 0 && (
+        <p className="status">No repos registered yet.</p>
+      )}
+
+      {state.status === 'loaded' && state.repos.length > 0 && (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>repoId</th>
+                <th>registrant</th>
+                <th>ownerId</th>
+                <th>registeredAt</th>
+              </tr>
+            </thead>
+            <tbody>
+              {state.repos.map((repo) => (
+                <tr key={`${repo.repoId}-${repo.registrant}`}>
+                  <td>{repo.repoId}</td>
+                  <td>{repo.registrant}</td>
+                  <td>{repo.githubOwnerId}</td>
+                  <td>{repo.registeredAt}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      )}
+    </main>
   )
 }
 

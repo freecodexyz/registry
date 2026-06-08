@@ -21,6 +21,7 @@
     "vitest": "^4.1.8"
   },
   "dependencies": {
+    "@fastify/cors": "^11.2.0",
     "fastify": "^5.8.5",
     "viem": "^2.52.2"
   }

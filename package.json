@@ -4,10 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"pnpm --filter @freecodexyz/api dev\" \"pnpm --filter @freecodexyz/web dev\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.24.0"
+  "packageManager": "pnpm@10.24.0",
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
 }
