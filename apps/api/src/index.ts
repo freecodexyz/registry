@@ -1,8 +1,10 @@
 import fastify from "fastify";
 import { exit } from "node:process";
 import cors from "@fastify/cors";
-import { createPublicClient, http, parseAbiItem } from "viem";
+import { createPublicClient, http, isAddress, parseAbiItem } from "viem";
 import { sepolia } from "viem/chains";
+import { randomBytes } from "node:crypto";
+import { httpErrors } from "@fastify/sensible";
 
 const APP_NAME = "registry-api";
 const RIK_ADDRESS = process.env.CONTRACT_ADDRESS as `0x${string}`;
@@ -12,6 +14,10 @@ const ALLOWED_ORIGINS = ["http://localhost:5173"];
 
 if (!RIK_ADDRESS) die(new Error("RIK contract address is not defined"));
 
+// address -> nonce (single-use)
+// all address must be stored normalized in lower case here
+const nonces = new Map<string, string>();
+
 const client = createPublicClient({
     chain: sepolia,
     transport: http(RPC_URL),
@@ -20,6 +26,8 @@ const client = createPublicClient({
 const RepoRegisteredEvent = parseAbiItem("event RepoRegistered(uint256 indexed repoId, address indexed registrant, uint64 githubOwnerId, uint64 registeredAt)");
 
 const app = fastify({ logger: true });
+
+try { registerOrigins(ALLOWED_ORIGINS); } catch (err) { die(err); }
 
 app.get("/api/repos", async (_request, reply) => {
     const logs = await client.getLogs({ address: RIK_ADDRESS, event: RepoRegisteredEvent, fromBlock: await client.getBlockNumber() - DEFAULT_LIST_BLOCK_RANGE, toBlock: "latest" });
@@ -33,8 +41,46 @@ app.get("/api/repos", async (_request, reply) => {
 
 app.get("/", async () => ({
     name: APP_NAME,
-    endpoints: ["/api/repos"],
+    endpoints: ["/api/repos", "/api/auth/nonce", "/api/auth/verify"],
 }));
+
+app.get<{ Querystring: { address?: string } }>("/api/auth/nonce", async(req) => {
+    const address = readAddress(req.query.address);
+    const nonce = randomBytes(16).toString("hex");
+    nonces.set(address, nonce);
+    return {nonce};
+});
+
+app.post<{ Body: { address?: string; signature?: string } | undefined }>("/api/auth/verify", async(req) => {
+    const address = readAddress(req.body?.address);
+    const signature = readSignature(req.body?.signature);
+
+    const nonce = nonces.get(address);
+    if (!nonce) throw httpErrors.unauthorized("no nonce");
+
+    // clean after verification -> single-use
+    nonces.delete(address);
+
+    const ok = await client.verifyMessage({
+        address,
+        message: `Sign in to RIK Registry. Nonce: ${nonce}`,
+        signature,
+    });
+    if (!ok) throw httpErrors.unauthorized("bad signature");
+    
+    return { ok: true };
+});
+
+function readAddress(address: unknown): `0x${string}` {
+    if (typeof address !== "string" || !address) throw httpErrors.badRequest("address required");
+    if (!isAddress(address)) throw httpErrors.badRequest("invalid address");
+    return address.toLowerCase() as `0x${string}`;
+}
+
+function readSignature(signature: unknown): `0x${string}` {
+    if (typeof signature !== "string" || !signature.startsWith("0x")) throw httpErrors.badRequest("signature required");
+    return signature as `0x${string}`;
+}
 
 function registerOrigins(origins: string[]): void {
     // origins can be passed with ALLOWED_ORIGINS through env vars
@@ -60,6 +106,4 @@ function die(err: any): never {
     exit(1);
 }
 
-
-try { registerOrigins(ALLOWED_ORIGINS); } catch (err) { die(err); }
 await app.listen({ port: 3000 });

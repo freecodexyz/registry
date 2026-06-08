@@ -22,6 +22,44 @@
   text-transform: uppercase;
 }
 
+.connect-panel {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.connect-panel button {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-h);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.connect-panel button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.wallet-address,
+.sign-in-status,
+.connect-error {
+  font-family: var(--mono);
+  font-size: 14px;
+}
+
+.wallet-address,
+.sign-in-status {
+  color: var(--text-h);
+}
+
+.connect-error {
+  color: var(--error);
+}
+
 .status {
   margin: 0;
   padding: 20px;
@@ -79,5 +117,9 @@ tbody tr:last-child td {
 
   .registry-header {
     flex-direction: column;
+  }
+
+  .connect-panel {
+    justify-content: flex-start;
   }
 }
