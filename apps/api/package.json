@@ -24,6 +24,7 @@
     "@fastify/cors": "^11.2.0",
     "@fastify/sensible": "^6.0.4",
     "fastify": "^5.8.5",
+    "siwe": "^3.0.0",
     "viem": "^2.52.2"
   }
 }

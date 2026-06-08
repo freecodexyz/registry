@@ -1,8 +1,10 @@
-import { useAccount, useSignMessage } from "wagmi";
+import { createSiweMessage } from "viem/siwe";
+import { useAccount, useChainId, useSignMessage } from "wagmi";
 
 export function useSignIn() {
     const { address } = useAccount();
     const { signMessageAsync } = useSignMessage();
+    const chainId = useChainId();
 
     return async () => {
         if (!address) throw new Error("wallet not connected");
@@ -15,12 +17,20 @@ export function useSignIn() {
         const { nonce } = await nonceResponse.json() as { nonce?: string };
         if (!nonce) throw new Error("nonce missing");
 
-        const signature = await signMessageAsync({
-            message: `Sign in to RIK Registry. Nonce: ${nonce}`,
+        const message = createSiweMessage({
+            domain: window.location.host,
+            address: address!,
+            statement: "Sign in to RIK Registry.",
+            uri: window.location.origin,
+            version: "1",
+            chainId,
+            nonce
         });
+
+        const signature = await signMessageAsync({message});
         const res = await fetch(
             `/api/auth/verify`,
-            { method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({address, signature}) },
+            { method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({message, signature}) },
         );
         if (!res.ok) throw new Error("sign-in failed");
         return await res.json() as { ok: true };

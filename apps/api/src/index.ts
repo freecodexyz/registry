@@ -3,14 +3,15 @@ import { exit } from "node:process";
 import cors from "@fastify/cors";
 import { createPublicClient, http, isAddress, parseAbiItem } from "viem";
 import { sepolia } from "viem/chains";
-import { randomBytes } from "node:crypto";
 import { httpErrors } from "@fastify/sensible";
+import { generateNonce, SiweMessage } from "siwe";
 
 const APP_NAME = "registry-api";
 const RIK_ADDRESS = process.env.CONTRACT_ADDRESS as `0x${string}`;
 const RPC_URL = process.env.RPC_URL ?? "https://ethereum-sepolia-rpc.publicnode.com";
 const DEFAULT_LIST_BLOCK_RANGE = 50_000n;
 const ALLOWED_ORIGINS = ["http://localhost:5173"];
+const SIWE_DOMAIN = process.env.SIWE_DOMAIN ?? "localhost:5173";
 
 if (!RIK_ADDRESS) die(new Error("RIK contract address is not defined"));
 
@@ -46,30 +47,35 @@ app.get("/", async () => ({
 
 app.get<{ Querystring: { address?: string } }>("/api/auth/nonce", async(req) => {
     const address = readAddress(req.query.address);
-    const nonce = randomBytes(16).toString("hex");
+    const nonce = generateNonce(); // 8+ alphanumeric -> EIP-4361 standard
     nonces.set(address, nonce);
     return {nonce};
 });
 
-app.post<{ Body: { address?: string; signature?: string } | undefined }>("/api/auth/verify", async(req) => {
-    const address = readAddress(req.body?.address);
+app.post<{ Body: { message?: string; signature?: string } | undefined }>("/api/auth/verify", async(req) => {
+    const message = readMessage(req.body?.message);
     const signature = readSignature(req.body?.signature);
 
-    const nonce = nonces.get(address);
-    if (!nonce) throw httpErrors.unauthorized("no nonce");
+    const siwe = new SiweMessage(message);
+    const expectedNonce = nonces.get(siwe.address.toLowerCase());
+    if (!expectedNonce) throw httpErrors.unauthorized("no nonce");
 
     // clean after verification -> single-use
-    nonces.delete(address);
+    nonces.delete(siwe.address.toLowerCase());
 
-    const ok = await client.verifyMessage({
-        address,
-        message: `Sign in to RIK Registry. Nonce: ${nonce}`,
+    const result = await siwe.verify({
         signature,
+        domain: SIWE_DOMAIN,
+        nonce: expectedNonce,
     });
-    if (!ok) throw httpErrors.unauthorized("bad signature");
-    
-    return { ok: true };
+    if (!result.success) throw httpErrors.unauthorized("bad signature");
+    return { ok: true, address: siwe.address };
 });
+
+function readMessage(message: unknown): string {
+    if (typeof message !== "string" || !message) throw httpErrors.badRequest("message is required");
+    return message as string;
+}
 
 function readAddress(address: unknown): `0x${string}` {
     if (typeof address !== "string" || !address) throw httpErrors.badRequest("address required");
