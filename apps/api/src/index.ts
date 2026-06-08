@@ -5,6 +5,8 @@ import { createPublicClient, http, isAddress, parseAbiItem } from "viem";
 import { sepolia } from "viem/chains";
 import { httpErrors } from "@fastify/sensible";
 import { generateNonce, SiweMessage } from "siwe";
+import secureSession from "@fastify/secure-session";
+import { randomBytes } from 'node:crypto'
 
 const APP_NAME = "registry-api";
 const RIK_ADDRESS = process.env.CONTRACT_ADDRESS as `0x${string}`;
@@ -12,6 +14,7 @@ const RPC_URL = process.env.RPC_URL ?? "https://ethereum-sepolia-rpc.publicnode.
 const DEFAULT_LIST_BLOCK_RANGE = 50_000n;
 const ALLOWED_ORIGINS = ["http://localhost:5173"];
 const SIWE_DOMAIN = process.env.SIWE_DOMAIN ?? "localhost:5173";
+const SESSION_KEY = process.env.SESSION_KEY ?? randomBytes(32);
 
 if (!RIK_ADDRESS) die(new Error("RIK contract address is not defined"));
 
@@ -29,6 +32,22 @@ const RepoRegisteredEvent = parseAbiItem("event RepoRegistered(uint256 indexed r
 const app = fastify({ logger: true });
 
 try { registerOrigins(ALLOWED_ORIGINS); } catch (err) { die(err); }
+
+app.register(secureSession, {
+    key: Buffer.from(SESSION_KEY),
+    cookie: {
+        path: "/",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24, // one day
+    },
+});
+
+// augment module -> add address
+declare module "@fastify/secure-session" {
+    interface SessionData { address?: `0x${string}`; }
+}
 
 app.get("/api/repos", async (_request, reply) => {
     const logs = await client.getLogs({ address: RIK_ADDRESS, event: RepoRegisteredEvent, fromBlock: await client.getBlockNumber() - DEFAULT_LIST_BLOCK_RANGE, toBlock: "latest" });
@@ -69,7 +88,19 @@ app.post<{ Body: { message?: string; signature?: string } | undefined }>("/api/a
         nonce: expectedNonce,
     });
     if (!result.success) throw httpErrors.unauthorized("bad signature");
+    req.session.set("address", siwe.address as `0x${string}`);
     return { ok: true, address: siwe.address };
+});
+
+app.get("/api/auth/me", async(req, _) => {
+    const address = req.session.get("address");
+    if (!address) throw httpErrors.unauthorized("not signed in");
+    return { address };
+});
+
+app.post("/api/auth/logout", async(req, _) => {
+    req.session.delete();
+    return { ok: true };
 });
 
 function readMessage(message: unknown): string {
