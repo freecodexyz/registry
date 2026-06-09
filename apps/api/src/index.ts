@@ -25,6 +25,8 @@ const GATE_TOKEN_MIN_BALANCE        = process.env.GATE_TOKEN_MIN_BALANCE ?? 1;
 const GITHUB_TOKEN                  = process.env.GITHUB_TOKEN;
 const REPO_CACHE_TTL_MS             = 5 * 60_000; // 5 min
 const EVENT_CACHE_TTL_MS            = 10_000;
+const DEFAULT_PAGE_SIZE             = 50;
+const MAX_PAGE_SIZE                 = 200;
 const SHOULD_RUN_INDEXER            = process.env.INDEXER === "1" || process.env.INDEXER?.toLowerCase() === "true";
 
 // server can't start with these
@@ -61,10 +63,16 @@ type RepoPayload = {
 };
 type RepoStreamPayload = RepoPayload & { blockNumber: number };
 type RepoWithMetaRow = RepoRow & Pick<GithubMetaRow, "full_name" | "description" | "language" | "stars" | "html_url" | "owner_name">;
+type Sort = "registered_at_desc" | "stars_desc" | "registered_at_asc";
 
 const repoCache = new Map<string, Cache<RepoGithubCache>>();
 let eventCache: Cache<readonly any[]> | null = null;
 
+const ORDER: Record<Sort, string> = {
+    registered_at_asc:  "r.registered_at ASC, r.repo_id ASC",
+    registered_at_desc: "r.registered_at DESC, r.repo_id DESC",
+    stars_desc:         "m.stars IS NULL, m.stars DESC, r.registered_at DESC, r.repo_id DESC",
+};
 
 app.register(secureSession, {
     key: Buffer.from(SESSION_KEY),
@@ -94,7 +102,17 @@ declare module "@fastify/secure-session" {
     interface SessionData { address?: `0x${string}`; }
 }
 
-app.get("/api/repos", async (_request, reply) => {
+app.get("/api/repos", async (req, reply) => {
+    const raw = req.query && typeof req.query === "object" ? req.query as Record<string, unknown> : {};
+    const q = typeof raw.q === "string" ? raw.q.trim() : "";
+    const sort = raw.sort ?? "registered_at_desc";
+    if (typeof sort !== "string" || !(sort in ORDER)) throw httpErrors.badRequest("invalid sort");
+
+    const limitRaw = Number(raw.limit ?? DEFAULT_PAGE_SIZE);
+    const cursorRaw = Number(raw.cursor ?? 0);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), MAX_PAGE_SIZE) : DEFAULT_PAGE_SIZE;
+    const offset = Number.isFinite(cursorRaw) ? Math.min(Math.max(Math.trunc(cursorRaw), 0), Number.MAX_SAFE_INTEGER) : 0;
+
     try {
         const now = Date.now();
         let logs: readonly any[];
@@ -121,7 +139,28 @@ app.get("/api/repos", async (_request, reply) => {
         app.log.warn({ err }, "failed to refresh repo events; serving sqlite cache");
     }
 
-    const rows = listRepos.all() as RepoRow[];
+    const where: string[] = [];
+    const params: any[] = [];
+
+    if (q) {
+        const like = `%${q}%`;
+        where.push(`(
+            r.repo_id LIKE ? OR r.registrant LIKE ? OR CAST(r.github_owner_id AS TEXT) LIKE ? OR
+            m.full_name LIKE ? OR m.description LIKE ? OR m.language LIKE ? OR m.owner_name LIKE ?
+        )`);
+        params.push(like, like, like, like, like, like, like);
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+    const rows = db.prepare(`
+        SELECT r.repo_id, r.registrant, r.github_owner_id, r.registered_at, r.block_number,
+               m.full_name, m.description, m.language, m.stars, m.html_url, m.owner_name
+        FROM repos r
+        LEFT JOIN github_meta m ON m.repo_id = r.repo_id
+        ${whereSql}
+        ORDER BY ${ORDER[sort as Sort]}
+        LIMIT ? OFFSET ?
+    `).all(...params, limit, offset) as RepoWithMetaRow[];
     const repos = await Promise.all(rows.map(async (repo) => {
         const key = repo.repo_id;
         const now = Date.now();
