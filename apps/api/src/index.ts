@@ -7,7 +7,7 @@ import { HttpError, httpErrors } from "@fastify/sensible";
 import { generateNonce, SiweMessage } from "siwe";
 import secureSession from "@fastify/secure-session";
 import { randomBytes } from 'node:crypto'
-import { fetchOwnerUsername, fetchRepoMetaData, getGhClient } from "./github";
+import { fetchOwnerUsername, fetchRepoMetaData, getGhClient, RepoMetaData } from "./github";
 
 const APP_NAME                      = "registry-api";
 const RIK_ADDRESS                   = process.env.CONTRACT_ADDRESS as `0x${string}`;
@@ -19,6 +19,8 @@ const SESSION_KEY                   = process.env.SESSION_KEY ?? randomBytes(32)
 const GATE_TOKEN_ADDRESS            = process.env.GATE_TOKEN_ADDRESS as `0x${string}`;
 const GATE_TOKEN_MIN_BALANCE        = process.env.GATE_TOKEN_MIN_BALANCE ?? 1;
 const GITHUB_TOKEN                  = process.env.GITHUB_TOKEN;
+const REPO_CACHE_TTL_MS             = 5 * 60_000; // 5 min
+const EVENT_CACHE_TTL_MS            = 10_000;
 
 // server can't start with these
 if (!RIK_ADDRESS) die(new Error("RIK contract address is missing"));
@@ -40,6 +42,13 @@ const app = fastify({ logger: true });
 
 try { registerOrigins(ALLOWED_ORIGINS); } catch (err) { die(err); }
 
+// in-memory cache
+type Cache<T> = { value: T, at: number };
+
+const repoCache = new Map<string, Cache<RepoMetaData | null>>();
+let eventCache: Cache<readonly any[]> | null = null;
+
+
 app.register(secureSession, {
     key: Buffer.from(SESSION_KEY),
     cookie: {
@@ -60,10 +69,10 @@ app.get("/api/repos", async (_request, reply) => {
     let gh = null;
     // NOTE: we should build a fallback system and not fail the request if github can't be reached.
     try { gh = getGhClient() } catch(err) { throw httpErrors.internalServerError("failed to load github data"); }
-    const logs = await client.getLogs({ address: RIK_ADDRESS, event: RepoRegisteredEvent, fromBlock: await client.getBlockNumber() - DEFAULT_LIST_BLOCK_RANGE, toBlock: "latest" });
+    const logs = await cachedEvents();
     const repos = await Promise.all(logs.map(async (l) => {
         const [metadata, ownerUsername] = await Promise.all([
-            fetchRepoMetaData(gh, l.args.repoId!),
+            cachedRepoMeta(l.args.repoId!),
             fetchOwnerUsername(gh, l.args.githubOwnerId!),
         ]);
         return { 
@@ -148,6 +157,21 @@ function readAddress(address: unknown): `0x${string}` {
 function readSignature(signature: unknown): `0x${string}` {
     if (typeof signature !== "string" || !signature.startsWith("0x")) throw httpErrors.badRequest("signature required");
     return signature as `0x${string}`;
+}
+
+async function cachedRepoMeta(id: bigint) {
+    const key = String(id); const hit = repoCache.get(key);
+
+    if (hit && Date.now() - hit.at < REPO_CACHE_TTL_MS) return hit.value;
+    const fresh = await fetchRepoMetaData(getGhClient(), id);
+
+    repoCache.set(key, { value: fresh, at: Date.now() }); return fresh;
+}
+
+async function cachedEvents() {
+    if (eventCache && Date.now() - eventCache.at < EVENT_CACHE_TTL_MS) return eventCache.value;
+    const logs = await client.getLogs({ address: RIK_ADDRESS, event: RepoRegisteredEvent, fromBlock: await client.getBlockNumber() - DEFAULT_LIST_BLOCK_RANGE, toBlock: "latest" });
+    eventCache = { value: logs, at: Date.now() }; return logs;
 }
 
 function registerOrigins(origins: string[]): void {
