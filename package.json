@@ -13,5 +13,10 @@
   "packageManager": "pnpm@10.24.0",
   "devDependencies": {
     "concurrently": "^10.0.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
   }
 }

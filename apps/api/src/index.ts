@@ -3,11 +3,12 @@ import { exit } from "node:process";
 import cors from "@fastify/cors";
 import { createPublicClient, http, isAddress, parseAbiItem, erc20Abi } from "viem";
 import { sepolia } from "viem/chains";
-import { HttpError, httpErrors } from "@fastify/sensible";
+import { httpErrors } from "@fastify/sensible";
 import { generateNonce, SiweMessage } from "siwe";
 import secureSession from "@fastify/secure-session";
 import { randomBytes } from 'node:crypto'
 import { fetchOwnerUsername, fetchRepoMetaData, getGhClient, RepoMetaData } from "./github";
+import { getMeta, insertRepo, listRepos, upsertMeta, type GithubMetaRow, type RepoRow } from "./db";
 
 const APP_NAME                      = "registry-api";
 const RIK_ADDRESS                   = process.env.CONTRACT_ADDRESS as `0x${string}`;
@@ -42,10 +43,12 @@ const app = fastify({ logger: true });
 
 try { registerOrigins(ALLOWED_ORIGINS); } catch (err) { die(err); }
 
-// in-memory cache
+// Process-local L1 cache only. SQLite remains the durable layer so restarts do not
+// immediately fan out to the RPC node and GitHub API again.
 type Cache<T> = { value: T, at: number };
+type RepoGithubCache = { metadata: RepoMetaData | null; ownerUsername: string | null };
 
-const repoCache = new Map<string, Cache<RepoMetaData | null>>();
+const repoCache = new Map<string, Cache<RepoGithubCache>>();
 let eventCache: Cache<readonly any[]> | null = null;
 
 
@@ -66,22 +69,82 @@ declare module "@fastify/secure-session" {
 }
 
 app.get("/api/repos", async (_request, reply) => {
-    let gh = null;
-    // NOTE: we should build a fallback system and not fail the request if github can't be reached.
-    try { gh = getGhClient() } catch(err) { throw httpErrors.internalServerError("failed to load github data"); }
-    const logs = await cachedEvents();
-    const repos = await Promise.all(logs.map(async (l) => {
-        const [metadata, ownerUsername] = await Promise.all([
-            cachedRepoMeta(l.args.repoId!),
-            fetchOwnerUsername(gh, l.args.githubOwnerId!),
-        ]);
+    try {
+        const now = Date.now();
+        let logs: readonly any[];
+
+        // RepoRegistered events are append-only for our purposes, so a short event
+        // TTL collapses repeated page loads without hiding fresh data for long.
+        if (eventCache && now - eventCache.at < EVENT_CACHE_TTL_MS) logs = eventCache.value;
+        else {
+            logs = await client.getLogs({ address: RIK_ADDRESS, event: RepoRegisteredEvent, fromBlock: await client.getBlockNumber() - DEFAULT_LIST_BLOCK_RANGE, toBlock: "latest" });
+            eventCache = { value: logs, at: Date.now() };
+        }
+
+        for (const log of logs) {
+            const { repoId, registrant, githubOwnerId, registeredAt } = log.args;
+            if (repoId == null || registrant == null || githubOwnerId == null || registeredAt == null || log.blockNumber == null) continue;
+            // Refreshes replay overlapping block ranges; repo_id is the stable event key,
+            // so INSERT OR IGNORE makes the SQLite index idempotent.
+            insertRepo.run(String(repoId), registrant, Number(githubOwnerId), Number(registeredAt), Number(log.blockNumber));
+        }
+    } catch (err) {
+        // Once SQLite is primed, availability is better than failing the page because
+        // the RPC endpoint had a transient outage. The next successful request repairs it.
+        if ((listRepos.all() as RepoRow[]).length === 0) throw err;
+        app.log.warn({ err }, "failed to refresh repo events; serving sqlite cache");
+    }
+
+    const rows = listRepos.all() as RepoRow[];
+    const repos = await Promise.all(rows.map(async (repo) => {
+        const key = repo.repo_id;
+        const now = Date.now();
+        const hit = repoCache.get(key);
+        let value = hit && now - hit.at < REPO_CACHE_TTL_MS ? hit.value : null;
+
+        if (!value) {
+            // GitHub metadata is mutable but not critical consensus data. Cache both
+            // positive and negative lookups to avoid burning rate limit on missing repos.
+            const stored = getMeta.get(key) as GithubMetaRow | undefined;
+            const storedValue: RepoGithubCache | null = stored ? {
+                metadata: stored.full_name && stored.html_url ? {
+                    fullName: stored.full_name,
+                    description: stored.description,
+                    language: stored.language,
+                    stars: stored.stars ?? 0,
+                    htmlUrl: stored.html_url,
+                } : null,
+                ownerUsername: stored.owner_name,
+            } : null;
+
+            if (storedValue && stored && now - stored.fetched_at < REPO_CACHE_TTL_MS) value = storedValue;
+            else {
+                try {
+                    const gh = getGhClient();
+                    const [metadata, ownerUsername] = await Promise.all([
+                        fetchRepoMetaData(gh, Number(key)),
+                        fetchOwnerUsername(gh, repo.github_owner_id),
+                    ]);
+                    value = { metadata, ownerUsername };
+                    upsertMeta.run(key, metadata?.fullName ?? null, metadata?.description ?? null, metadata?.language ?? null, metadata?.stars ?? null, metadata?.htmlUrl ?? null, ownerUsername, now);
+                } catch (err) {
+                    // GitHub is enrichment, not the registry source of truth. If we have
+                    // stale metadata, keep the registry usable and retry on a later request.
+                    if (!storedValue) throw err;
+                    value = storedValue;
+                }
+            }
+
+            repoCache.set(key, { value, at: now });
+        }
+
         return { 
-            repoId: String(l.args.repoId),
-            registrant: l.args.registrant,
-            githubOwnerId: Number(l.args.githubOwnerId),
-            githubOwnerUsername: ownerUsername ?? "not found",
-            registeredAt: Number(l.args.registeredAt),
-            github: metadata ?? "not found",
+            repoId: repo.repo_id,
+            registrant: repo.registrant,
+            githubOwnerId: repo.github_owner_id,
+            githubOwnerUsername: value.ownerUsername ?? "not found",
+            registeredAt: repo.registered_at,
+            github: value.metadata ?? "not found",
         }
     }));
     return reply.type("application/json; charset=utf-8").send(repos);
@@ -157,21 +220,6 @@ function readAddress(address: unknown): `0x${string}` {
 function readSignature(signature: unknown): `0x${string}` {
     if (typeof signature !== "string" || !signature.startsWith("0x")) throw httpErrors.badRequest("signature required");
     return signature as `0x${string}`;
-}
-
-async function cachedRepoMeta(id: bigint) {
-    const key = String(id); const hit = repoCache.get(key);
-
-    if (hit && Date.now() - hit.at < REPO_CACHE_TTL_MS) return hit.value;
-    const fresh = await fetchRepoMetaData(getGhClient(), id);
-
-    repoCache.set(key, { value: fresh, at: Date.now() }); return fresh;
-}
-
-async function cachedEvents() {
-    if (eventCache && Date.now() - eventCache.at < EVENT_CACHE_TTL_MS) return eventCache.value;
-    const logs = await client.getLogs({ address: RIK_ADDRESS, event: RepoRegisteredEvent, fromBlock: await client.getBlockNumber() - DEFAULT_LIST_BLOCK_RANGE, toBlock: "latest" });
-    eventCache = { value: logs, at: Date.now() }; return logs;
 }
 
 function registerOrigins(origins: string[]): void {
