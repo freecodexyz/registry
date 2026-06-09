@@ -3,10 +3,11 @@ import { exit } from "node:process";
 import cors from "@fastify/cors";
 import { createPublicClient, http, isAddress, parseAbiItem, erc20Abi } from "viem";
 import { sepolia } from "viem/chains";
-import { httpErrors } from "@fastify/sensible";
+import { HttpError, httpErrors } from "@fastify/sensible";
 import { generateNonce, SiweMessage } from "siwe";
 import secureSession from "@fastify/secure-session";
 import { randomBytes } from 'node:crypto'
+import { fetchOwnerUsername, fetchRepoMetaData, getGhClient } from "./github";
 
 const APP_NAME                      = "registry-api";
 const RIK_ADDRESS                   = process.env.CONTRACT_ADDRESS as `0x${string}`;
@@ -17,10 +18,12 @@ const SIWE_DOMAIN                   = process.env.SIWE_DOMAIN ?? "localhost:5173
 const SESSION_KEY                   = process.env.SESSION_KEY ?? randomBytes(32);
 const GATE_TOKEN_ADDRESS            = process.env.GATE_TOKEN_ADDRESS as `0x${string}`;
 const GATE_TOKEN_MIN_BALANCE        = process.env.GATE_TOKEN_MIN_BALANCE ?? 1;
+const GITHUB_TOKEN                  = process.env.GITHUB_TOKEN;
 
 // server can't start with these
 if (!RIK_ADDRESS) die(new Error("RIK contract address is missing"));
 if (!GATE_TOKEN_ADDRESS) die(new Error("gate token address is missing"));
+if (!GITHUB_TOKEN) die(new Error("github token is missing"));
 
 // address -> nonce (single-use)
 // all address must be stored normalized in lower case here
@@ -54,13 +57,25 @@ declare module "@fastify/secure-session" {
 }
 
 app.get("/api/repos", async (_request, reply) => {
+    let gh = null;
+    // NOTE: we should build a fallback system and not fail the request if github can't be reached.
+    try { gh = getGhClient() } catch(err) { throw httpErrors.internalServerError("failed to load github data"); }
     const logs = await client.getLogs({ address: RIK_ADDRESS, event: RepoRegisteredEvent, fromBlock: await client.getBlockNumber() - DEFAULT_LIST_BLOCK_RANGE, toBlock: "latest" });
-    return reply.type("application/json; charset=utf-8").send(logs.map((l) => ({
-        repoId:         String(l.args.repoId),
-        registrant:     l.args.registrant,
-        githubOwnerId:  Number(l.args.githubOwnerId),
-        registeredAt:   Number(l.args.registeredAt),
-    })))
+    const repos = await Promise.all(logs.map(async (l) => {
+        const [metadata, ownerUsername] = await Promise.all([
+            fetchRepoMetaData(gh, l.args.repoId!),
+            fetchOwnerUsername(gh, l.args.githubOwnerId!),
+        ]);
+        return { 
+            repoId: String(l.args.repoId),
+            registrant: l.args.registrant,
+            githubOwnerId: Number(l.args.githubOwnerId),
+            githubOwnerUsername: ownerUsername ?? "not found",
+            registeredAt: Number(l.args.registeredAt),
+            github: metadata ?? "not found",
+        }
+    }));
+    return reply.type("application/json; charset=utf-8").send(repos);
 });
 
 app.get("/", async () => ({
