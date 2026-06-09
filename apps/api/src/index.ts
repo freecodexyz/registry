@@ -11,6 +11,8 @@ import { fetchOwnerUsername, fetchRepoMetaData, getGhClient, RepoMetaData } from
 import { getMeta, insertRepo, listRepos, upsertMeta, db, type GithubMetaRow, type RepoRow } from "./db";
 import { FastifySSEPlugin } from "fastify-sse-v2";
 import { registryEvents } from "./events";
+import rateLimit from "@fastify/rate-limit";
+import { Addresses } from "viem/tempo";
 
 const APP_NAME                      = "registry-api";
 const RIK_ADDRESS                   = process.env.CONTRACT_ADDRESS as `0x${string}`;
@@ -76,6 +78,17 @@ app.register(secureSession, {
     },
 });
 app.register(FastifySSEPlugin);
+
+await app.register(rateLimit, {
+    max: 120,
+    timeWindow: "1 minute",
+    keyGenerator: (req) => req.session.get("address") ?? req.ip,
+    errorResponseBuilder: (_, ctx) => ({
+        statusCode: 429,
+        error: "Too Many Requests",
+        message: `Rate Limit exceeded. Try again in ${ctx.after}`
+    }),
+});
 
 // augment module -> add address
 declare module "@fastify/secure-session" {
@@ -209,10 +222,23 @@ app.post("/api/auth/logout", async(req, _) => {
     return { ok: true };
 });
 
-app.get("/api/repos/stream", (req, reply) => {
-    const lastId = req.headers["last-event-id"];
+app.get("/api/repos/stream", async (req, reply) => {
+    // check token gate freshness to cut off
+    const address = req.session.get("address");
+    if (!address || !(await checkGate(address))) return httpErrors.unauthorized("not entitled");
+
+    const interval  = setInterval(async () => {
+        if (!(await checkGate(address))) { 
+            reply.sse({ event: "revoked", data: "$FREECODE balance below threshold" }); 
+            reply.raw.end(); clearInterval(interval);
+        }
+    }, 60_000);
+
+    req.raw.on("close", () => clearInterval(interval));
 
     // on reconnect replay everything since lastId -> read from db
+    const lastId = req.headers["last-event-id"];
+
     if (typeof lastId === "string" && lastId) {
         const rows = db.prepare(
             `SELECT r.repo_id, r.registrant, r.github_owner_id, r.registered_at, r.block_number,
