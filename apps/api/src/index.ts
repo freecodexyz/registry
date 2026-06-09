@@ -8,7 +8,9 @@ import { generateNonce, SiweMessage } from "siwe";
 import secureSession from "@fastify/secure-session";
 import { randomBytes } from 'node:crypto'
 import { fetchOwnerUsername, fetchRepoMetaData, getGhClient, RepoMetaData } from "./github";
-import { getMeta, insertRepo, listRepos, upsertMeta, type GithubMetaRow, type RepoRow } from "./db";
+import { getMeta, insertRepo, listRepos, upsertMeta, db, type GithubMetaRow, type RepoRow } from "./db";
+import { FastifySSEPlugin } from "fastify-sse-v2";
+import { registryEvents } from "./events";
 
 const APP_NAME                      = "registry-api";
 const RIK_ADDRESS                   = process.env.CONTRACT_ADDRESS as `0x${string}`;
@@ -22,6 +24,7 @@ const GATE_TOKEN_MIN_BALANCE        = process.env.GATE_TOKEN_MIN_BALANCE ?? 1;
 const GITHUB_TOKEN                  = process.env.GITHUB_TOKEN;
 const REPO_CACHE_TTL_MS             = 5 * 60_000; // 5 min
 const EVENT_CACHE_TTL_MS            = 10_000;
+const SHOULD_RUN_INDEXER            = process.env.INDEXER === "1" || process.env.INDEXER?.toLowerCase() === "true";
 
 // server can't start with these
 if (!RIK_ADDRESS) die(new Error("RIK contract address is missing"));
@@ -47,6 +50,16 @@ try { registerOrigins(ALLOWED_ORIGINS); } catch (err) { die(err); }
 // immediately fan out to the RPC node and GitHub API again.
 type Cache<T> = { value: T, at: number };
 type RepoGithubCache = { metadata: RepoMetaData | null; ownerUsername: string | null };
+type RepoPayload = {
+    repoId: string;
+    registrant: string;
+    githubOwnerId: number;
+    githubOwnerUsername: string;
+    registeredAt: number;
+    github: RepoMetaData | "not found";
+};
+type RepoStreamPayload = RepoPayload & { blockNumber: number };
+type RepoWithMetaRow = RepoRow & Pick<GithubMetaRow, "full_name" | "description" | "language" | "stars" | "html_url" | "owner_name">;
 
 const repoCache = new Map<string, Cache<RepoGithubCache>>();
 let eventCache: Cache<readonly any[]> | null = null;
@@ -62,6 +75,7 @@ app.register(secureSession, {
         maxAge: 60 * 60 * 24, // one day
     },
 });
+app.register(FastifySSEPlugin);
 
 // augment module -> add address
 declare module "@fastify/secure-session" {
@@ -195,6 +209,29 @@ app.post("/api/auth/logout", async(req, _) => {
     return { ok: true };
 });
 
+app.get("/api/repos/stream", (req, reply) => {
+    const lastId = req.headers["last-event-id"];
+
+    // on reconnect replay everything since lastId -> read from db
+    if (typeof lastId === "string" && lastId) {
+        const rows = db.prepare(
+            `SELECT r.repo_id, r.registrant, r.github_owner_id, r.registered_at, r.block_number,
+                    m.full_name, m.description, m.language, m.stars, m.html_url, m.owner_name
+             FROM repos r
+             LEFT JOIN github_meta m ON m.repo_id = r.repo_id
+             WHERE r.block_number > ?
+             ORDER BY r.block_number`
+        ).all(Number(lastId)) as RepoWithMetaRow[];
+        
+        for (const row of rows) {
+            const payload = repoPayloadFromRow(row);
+            reply.sse({ id: String(payload.blockNumber), data: JSON.stringify(payload) });
+        }
+    }
+    const listener = (row: RepoStreamPayload) => reply.sse({ id: String(row.blockNumber), data: JSON.stringify(row) });
+    registryEvents.on("repo", listener); req.raw.on("close", () => registryEvents.off("repo", listener));
+});
+
 // token gate-check every request
 app.addHook("preHandler", async (req, _) => {
     // skip non-api routes + auth flow
@@ -256,6 +293,24 @@ function die(err: any): never {
     exit(1);
 }
 
-if(!process.env.INDEXER || process.env.INDEXER?.toLowerCase() === "false") await app.listen({ port: 3000 });
+function repoPayloadFromRow(row: RepoWithMetaRow): RepoStreamPayload {
+    return {
+        repoId: row.repo_id,
+        registrant: row.registrant,
+        githubOwnerId: row.github_owner_id,
+        githubOwnerUsername: row.owner_name ?? "not found",
+        registeredAt: row.registered_at,
+        blockNumber: row.block_number,
+        github: row.full_name && row.html_url ? {
+            fullName: row.full_name,
+            description: row.description,
+            language: row.language,
+            stars: row.stars ?? 0,
+            htmlUrl: row.html_url,
+        } : "not found",
+    };
+}
+
+if(!SHOULD_RUN_INDEXER) await app.listen({ port: 3000 });
 
 export {client, RepoRegisteredEvent, RIK_ADDRESS, DEFAULT_LIST_BLOCK_RANGE};

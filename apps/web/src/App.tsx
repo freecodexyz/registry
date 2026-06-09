@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { ConnectButton } from './ConnectButton'
+import { useLiveRepos } from './useLiveRepos'
 import './App.css'
 
-type GithubRepo = {
+export type GithubRepo = {
   fullName: string;
   description: string | null;
   language: string | null;
@@ -10,7 +11,7 @@ type GithubRepo = {
   htmlUrl: string;
 }
 
-type Repo = {
+export type Repo = {
   repoId: string;
   registrant: `0x${string}`;
   githubOwnerId: number;
@@ -75,63 +76,65 @@ function App() {
         </p>
       )}
 
-      {state.status === 'loaded' && state.repos.length === 0 && (
-        <p className="status">No repos registered yet.</p>
-      )}
-
-      {state.status === 'loaded' && state.repos.length > 0 && (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>repoId</th>
-                <th>github</th>
-                <th>language</th>
-                <th>stars</th>
-                <th>registrant</th>
-                <th>owner</th>
-                <th>registeredAt</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.repos.map((repo) => {
-                const github = repo.github === 'not found' ? null : repo.github
-
-                return (
-                  <tr key={`${repo.repoId}-${repo.registrant}`}>
-                    <td>{repo.repoId}</td>
-                    <td>
-                      {github ? (
-                        <>
-                          <a href={github.htmlUrl} target="_blank" rel="noreferrer">
-                            {github.fullName}
-                          </a>
-                          {github.description && (
-                            <>
-                              <br />
-                              <small>{github.description}</small>
-                            </>
-                          )}
-                        </>
-                      ) : (
-                        'not found'
-                      )}
-                    </td>
-                    <td>{github?.language ?? '-'}</td>
-                    <td>{github ? github.stars.toLocaleString() : '-'}</td>
-                    <td>{repo.registrant}</td>
-                    <td>
-                      {repo.githubOwnerUsername === 'not found' ? repo.githubOwnerId : repo.githubOwnerUsername}
-                    </td>
-                    <td>{formatRegisteredAt(repo.registeredAt)}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {state.status === 'loaded' && <RepoTable initialRepos={state.repos} />}
     </main>
+  )
+}
+
+function RepoTable({ initialRepos }: { initialRepos: Repo[] }) {
+  const repos = useLiveRepos(initialRepos)
+
+  if (repos.length === 0) return <p className="status">No repos registered yet.</p>
+
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>repoId</th>
+            <th>github</th>
+            <th>language</th>
+            <th>stars</th>
+            <th>registrant</th>
+            <th>owner</th>
+            <th>registeredAt</th>
+          </tr>
+        </thead>
+        <tbody>
+          {repos.map((repo) => {
+            const github = repo.github === 'not found' ? null : repo.github
+
+            return (
+              <tr key={`${repo.repoId}-${repo.registrant}`}>
+                <td>{repo.repoId}</td>
+                <td>
+                  {github ? (
+                    <>
+                      <a href={github.htmlUrl} target="_blank" rel="noreferrer">
+                        {github.fullName}
+                      </a>
+                      {github.description && (
+                        <>
+                          <br />
+                          <small>{github.description}</small>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    'not found'
+                  )}
+                </td>
+                <td>{github?.language ?? '-'}</td>
+                <td>{github ? github.stars.toLocaleString() : '-'}</td>
+                <td>{repo.registrant}</td>
+                <td>{repo.githubOwnerUsername === 'not found' ? repo.githubOwnerId : repo.githubOwnerUsername}</td>
+                <td>{formatRegisteredAt(repo.registeredAt)}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
   )
 }
 

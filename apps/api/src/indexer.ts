@@ -1,8 +1,10 @@
 import { db, insertRepo, upsertMeta } from "./db";
 import { client, RIK_ADDRESS, RepoRegisteredEvent, DEFAULT_LIST_BLOCK_RANGE } from "./index";
 import { fetchOwnerUsername, fetchRepoMetaData, getGhClient } from "./github";
+import { registryEvents } from "./events";
 
 const POLL_MS   = 12_000; // one Sepolia block time
+const SHOULD_RUN_INDEXER = process.env.INDEXER === "1" || process.env.INDEXER?.toLowerCase() === "true";
 
 const gh = getGhClient();
 
@@ -43,14 +45,22 @@ export async function tick() {
             fetchRepoMetaData(gh, Number(l.args.repoId)),
             fetchOwnerUsername(gh, l.args.githubOwnerId),
         ]);
-        if (metadata && ownerUsername) {
-            upsertMeta.run(String(l.args.repoId), metadata.fullName, metadata.description,
-                metadata.language, metadata.stars, metadata.htmlUrl, ownerUsername, Date.now());
-        }
+        upsertMeta.run(String(l.args.repoId), metadata?.fullName ?? null, metadata?.description ?? null,
+            metadata?.language ?? null, metadata?.stars ?? null, metadata?.htmlUrl ?? null, ownerUsername, Date.now());
+        
+        registryEvents.emit("repo", {
+            repoId: String(l.args.repoId),
+            registrant: l.args.registrant,
+            githubOwnerId: Number(l.args.githubOwnerId),
+            githubOwnerUsername: ownerUsername ?? "not found",
+            registeredAt: Number(l.args.registeredAt),
+            blockNumber: Number(l.blockNumber),
+            github: metadata ?? "not found",
+        });
     }
 }
 
-if ((process.env.INDEXER?.toLowerCase() === "true")) {
+if (SHOULD_RUN_INDEXER) {
     console.log("Starting indexer");
     setInterval(() => { tick().catch(console.error); }, POLL_MS);
     tick();
