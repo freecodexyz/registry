@@ -108,6 +108,17 @@ app.post("/api/auth/logout", async(req, _) => {
     return { ok: true };
 });
 
+// token gate-check every request
+app.addHook("preHandler", async (req, _) => {
+    // skip non-api routes + auth flow
+    if (!req.url.startsWith("/api/")) return;
+    if (req.url.startsWith("/api/auth/")) return;
+
+    const address = req.session.get("address");
+    if (!address) throw httpErrors.unauthorized("not signed in");
+    if (!(await checkGate(address))) return httpErrors.unauthorized("insufficient $FREECODE balance");
+});
+
 function readMessage(message: unknown): string {
     if (typeof message !== "string" || !message) throw httpErrors.badRequest("message is required");
     return message as string;
