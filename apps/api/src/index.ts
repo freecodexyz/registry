@@ -12,7 +12,6 @@ import { getMeta, insertRepo, listRepos, upsertMeta, db, type GithubMetaRow, typ
 import { FastifySSEPlugin } from "fastify-sse-v2";
 import { registryEvents } from "./events";
 import rateLimit from "@fastify/rate-limit";
-import { Addresses } from "viem/tempo";
 
 const APP_NAME                      = "registry-api";
 const RIK_ADDRESS                   = process.env.CONTRACT_ADDRESS as `0x${string}`;
