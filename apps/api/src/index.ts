@@ -256,4 +256,6 @@ function die(err: any): never {
     exit(1);
 }
 
-await app.listen({ port: 3000 });
+if(!process.env.INDEXER || process.env.INDEXER?.toLowerCase() === "false") await app.listen({ port: 3000 });
+
+export {client, RepoRegisteredEvent, RIK_ADDRESS, DEFAULT_LIST_BLOCK_RANGE};

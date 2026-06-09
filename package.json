@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently -n api,web -c blue,green \"pnpm --filter @freecodexyz/api dev\" \"pnpm --filter @freecodexyz/web dev\"",
+    "dev": "concurrently -n api,indexer,web -c blue,cyan,green \"pnpm --filter @freecodexyz/api dev:api\" \"pnpm --filter @freecodexyz/api dev:indexer\" \"pnpm --filter @freecodexyz/web dev\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
