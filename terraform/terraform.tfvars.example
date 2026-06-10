@@ -1,0 +1,11 @@
+aws_region = "us-east-1"
+
+app_env = {
+  CONTRACT_ADDRESS       = "0x..."
+  GATE_TOKEN_ADDRESS    = "0x..."
+  GATE_TOKEN_MIN_BALANCE = "1"
+  GITHUB_TOKEN           = "ghp_..."
+  RPC_URL                = "https://..."
+  SESSION_KEY            = "replace-with-a-long-random-string"
+  SESSION_COOKIE_SECURE  = "false"
+}

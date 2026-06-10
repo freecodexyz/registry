@@ -1,0 +1,7 @@
+.terraform/
+*.pem
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+registry-source.zip

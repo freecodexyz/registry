@@ -6,4 +6,5 @@ node_modules
 **/.tmp
 data
 apps/api/data
+terraform
 *.log
