@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useAccount, useConnect } from "wagmi";
 import { Button } from "./components/ui";
 import { useAuthSession } from "./useAuthSession";
@@ -6,21 +6,8 @@ import { useAuthSession } from "./useAuthSession";
 export function ConnectButton() {
     const { address, isConnected } = useAccount();
     const { connectors, connect } = useConnect();
-    const { isSessionLoading, isSignedIn, isSigningIn, isLoggingOut, signedInAddress, signIn, signOut } = useAuthSession();
+    const { isSignedIn, isLoggingOut, signedInAddress, signOut } = useAuthSession();
     const [isOpen, setIsOpen] = useState(false);
-    const attemptedSignInAddress = useRef<`0x${string}` | null>(null);
-
-    useEffect(() => {
-        if (!isConnected || !address) {
-            attemptedSignInAddress.current = null;
-            return;
-        }
-
-        if (isSessionLoading || isSignedIn || isSigningIn || attemptedSignInAddress.current === address) return;
-
-        attemptedSignInAddress.current = address;
-        void signIn();
-    }, [address, isConnected, isSessionLoading, isSignedIn, isSigningIn, signIn]);
 
     function handleConnect(connector: (typeof connectors)[number]) {
         setIsOpen(false);

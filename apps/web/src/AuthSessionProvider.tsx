@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useAccount, useDisconnect } from 'wagmi'
 import { AuthSessionContext } from './useAuthSession'
 import { useSignIn } from './useSignIn'
@@ -9,9 +9,10 @@ type AuthError = {
 }
 
 export function AuthSessionProvider({ children }: { children: ReactNode }) {
-  const { address } = useAccount()
+  const { address, isConnected } = useAccount()
   const { disconnect } = useDisconnect()
   const signInWithWallet = useSignIn()
+  const attemptedSignInAddress = useRef<`0x${string}` | null>(null)
   const [signedInAddress, setSignedInAddress] = useState<`0x${string}` | null>(null)
   const [isSessionLoading, setIsSessionLoading] = useState(true)
   const [isSigningIn, setIsSigningIn] = useState(false)
@@ -51,7 +52,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
     return () => controller.abort()
   }, [])
 
-  async function signIn() {
+  const signIn = useCallback(async () => {
     setError(null)
     setIsSigningIn(true)
     try {
@@ -62,7 +63,19 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsSigningIn(false)
     }
-  }
+  }, [address, signInWithWallet])
+
+  useEffect(() => {
+    if (!isConnected || !address) {
+      attemptedSignInAddress.current = null
+      return
+    }
+
+    if (isSessionLoading || isSignedIn || isSigningIn || attemptedSignInAddress.current === address) return
+
+    attemptedSignInAddress.current = address
+    void signIn()
+  }, [address, isConnected, isSessionLoading, isSignedIn, isSigningIn, signIn])
 
   async function signOut() {
     setError(null)

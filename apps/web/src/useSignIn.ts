@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { createSiweMessage } from "viem/siwe";
 import { useAccount, useChainId, useSignMessage } from "wagmi";
 
@@ -6,7 +7,7 @@ export function useSignIn() {
     const { signMessageAsync } = useSignMessage();
     const chainId = useChainId();
 
-    return async () => {
+    return useCallback(async () => {
         if (!address) throw new Error("wallet not connected");
 
         const nonceResponse = await fetch(
@@ -35,5 +36,5 @@ export function useSignIn() {
         );
         if (!res.ok) throw new Error("sign-in failed");
         return await res.json() as { ok: true; address: `0x${string}` };
-    }
+    }, [address, chainId, signMessageAsync]);
 }
