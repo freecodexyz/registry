@@ -20,6 +20,7 @@ const DEFAULT_LIST_BLOCK_RANGE      = 50_000n;
 const ALLOWED_ORIGINS               = ["http://localhost:5173"];
 const SIWE_DOMAIN                   = (!process.env.SIWE_DOMAIN || process.env.SIWE_DOMAIN === "") ? "localhost:5173" : process.env.SIWE_DOMAIN;
 const SESSION_KEY                   = (!process.env.SESSION_KEY || process.env.SESSION_KEY === "") ? randomBytes(32) : process.env.SESSION_KEY;
+const SESSION_COOKIE_SECURE         = process.env.SESSION_COOKIE_SECURE === "false" ? false : process.env.NODE_ENV === "production";
 const GATE_TOKEN_ADDRESS            = process.env.GATE_TOKEN_ADDRESS as `0x${string}`;
 const GATE_TOKEN_MIN_BALANCE        = process.env.GATE_TOKEN_MIN_BALANCE ?? 1;
 const GITHUB_TOKEN                  = process.env.GITHUB_TOKEN;
@@ -84,7 +85,7 @@ app.register(secureSession, {
     cookie: {
         path: "/",
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: SESSION_COOKIE_SECURE,
         sameSite: "lax",
         maxAge: 60 * 60 * 24, // one day
     },
