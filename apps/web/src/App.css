@@ -60,6 +60,33 @@
   color: var(--error);
 }
 
+.registry-controls {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 220px;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.registry-controls label {
+  display: grid;
+  gap: 8px;
+  color: var(--text-h);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.registry-controls input,
+.registry-controls select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-h);
+  background: var(--surface);
+  font: inherit;
+}
+
 .status {
   margin: 0;
   padding: 20px;
@@ -110,6 +137,31 @@ tbody tr:last-child td {
   border-bottom: 0;
 }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.pagination button {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-h);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.pagination .status {
+  padding: 10px 12px;
+}
+
 @media (max-width: 720px) {
   .registry {
     padding: 32px 16px;
@@ -121,5 +173,9 @@ tbody tr:last-child td {
 
   .connect-panel {
     justify-content: flex-start;
+  }
+
+  .registry-controls {
+    grid-template-columns: 1fr;
   }
 }

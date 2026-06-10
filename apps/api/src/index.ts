@@ -160,8 +160,11 @@ app.get("/api/repos", async (req, reply) => {
         ${whereSql}
         ORDER BY ${ORDER[sort as Sort]}
         LIMIT ? OFFSET ?
-    `).all(...params, limit, offset) as RepoWithMetaRow[];
-    const repos = await Promise.all(rows.map(async (repo) => {
+    `).all(...params, limit + 1, offset) as RepoWithMetaRow[];
+    const page = rows.slice(0, limit);
+    const nextCursor = rows.length > limit ? offset + limit : null;
+
+    const repos = await Promise.all(page.map(async (repo) => {
         const key = repo.repo_id;
         const now = Date.now();
         const hit = repoCache.get(key);
@@ -212,7 +215,7 @@ app.get("/api/repos", async (req, reply) => {
             github: value.metadata ?? "not found",
         }
     }));
-    return reply.type("application/json; charset=utf-8").send(repos);
+    return reply.type("application/json; charset=utf-8").send({ repos, nextCursor });
 });
 
 app.get("/", async () => ({
