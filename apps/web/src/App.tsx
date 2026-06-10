@@ -114,11 +114,9 @@ function App() {
     <main className="registry" data-accent="emerald">
       <header className="registry-header fcf-frame fcf-frame--accent">
         <div>
-          <Eyebrow>Sepolia Registry</Eyebrow>
           <h1>RIK Registry</h1>
           <p className="registry-lede">Live, gated registry data indexed from Sepolia and enriched with GitHub metadata.</p>
         </div>
-        <Status>Live data</Status>
         <ConnectButton />
       </header>
 
