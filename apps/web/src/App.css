@@ -73,31 +73,24 @@
 }
 
 .registry-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: var(--space-5) var(--space-8);
-  margin-bottom: var(--space-8);
-  padding: var(--space-8);
-  border: var(--bw) solid var(--rule);
-  background: var(--bg);
+  margin-bottom: var(--space-5);
   text-align: left;
 }
 
 .registry-header h1 {
-  margin: var(--space-5) 0 var(--space-3);
+  margin: 0 0 var(--space-2);
   max-width: 760px;
   color: var(--fg);
-  font-size: clamp(42px, 7vw, var(--t-h1));
+  font-size: clamp(28px, 4vw, var(--t-h3));
   font-weight: var(--w-semibold);
-  line-height: var(--lh-tight);
-  letter-spacing: var(--ls-display);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-tight);
 }
 
 .registry-lede {
   max-width: var(--maxw-prose);
   color: var(--fg-dim);
-  font-size: var(--t-body-lg);
+  font-size: var(--t-body);
   text-wrap: pretty;
 }
 
@@ -186,11 +179,6 @@
   }
 
   .gate-card {
-    padding: var(--space-6);
-  }
-
-  .registry-header {
-    grid-template-columns: 1fr;
     padding: var(--space-6);
   }
 
