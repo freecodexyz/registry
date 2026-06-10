@@ -97,7 +97,7 @@ export function RepositoriesTable() {
 
   return (
     <section className="repositories" aria-label="Repositories">
-      <div className="registry-controls" aria-label="Repository filters">
+      <section className="registry-controls" aria-label="Repository filters">
         <Field label="Search" className="registry-search">
           <Input
             value={q}
@@ -113,7 +113,7 @@ export function RepositoriesTable() {
             <option value="stars_desc">Most stars</option>
           </Select>
         </Field>
-      </div>
+      </section>
 
       {state.status === 'loading' && <Notice>Loading repos...</Notice>}
 
