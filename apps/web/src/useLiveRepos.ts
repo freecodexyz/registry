@@ -26,6 +26,9 @@ export function useLiveRepos(initial: Repo[], options: { q: string; sort: Sort }
             github?.fullName,
             github?.description,
             github?.language,
+            repo.transactionHash,
+            String(repo.blockNumber),
+            String(repo.chainId),
         ].filter(Boolean).join(" ").toLowerCase().includes(q);
     }) : repos;
 

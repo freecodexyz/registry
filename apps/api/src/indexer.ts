@@ -1,5 +1,5 @@
 import { db, insertRepo, upsertMeta } from "./db";
-import { client, RIK_ADDRESS, RepoRegisteredEvent, DEFAULT_LIST_BLOCK_RANGE } from "./index";
+import { client, RIK_ADDRESS, RepoRegisteredEvent, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID } from "./index";
 import { fetchOwnerUsername, fetchRepoMetaData, getGhClient } from "./github";
 import { registryEvents } from "./events";
 
@@ -32,7 +32,7 @@ export async function tick() {
             insertRepo.run(
                 String(l.args.repoId), l.args.registrant,
                 Number(l.args.githubOwnerId), Number(l.args.registeredAt),
-                Number(l.blockNumber)
+                Number(l.blockNumber), l.transactionHash ?? null, CHAIN_ID
             );
         }
     });
@@ -55,6 +55,9 @@ export async function tick() {
             githubOwnerUsername: ownerUsername ?? "not found",
             registeredAt: Number(l.args.registeredAt),
             blockNumber: Number(l.blockNumber),
+            transactionHash: l.transactionHash ?? null,
+            chainId: CHAIN_ID,
+            registryAddress: RIK_ADDRESS,
             github: metadata ?? "not found",
         });
     }

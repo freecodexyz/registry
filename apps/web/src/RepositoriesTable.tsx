@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useChainId } from 'wagmi'
-import { base, baseSepolia, sepolia } from 'wagmi/chains'
 import githubLogoUrl from './assets/GitHub_Invertocat_Black.svg'
 import { Button, Field, Input, Notice, Select, Table, TableCell, TableHeader, TableViewport } from './components/ui'
+import { explorerAddressUrl } from './explorers'
+import { RepositoryDetailsDrawer } from './RepositoryDetailsDrawer'
 import type { Repo, ReposResponse, Sort } from './repositoryTypes'
 import { useLiveRepos } from './useLiveRepos'
 
@@ -13,11 +13,6 @@ type LoadState =
 
 const PAGE_SIZE = 50
 const COMPACT_DATE = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-const EXPLORER_ADDRESS_URLS: Record<number, string> = {
-  [sepolia.id]: 'https://sepolia.etherscan.io/address/',
-  [base.id]: 'https://basescan.org/address/',
-  [baseSepolia.id]: 'https://sepolia.basescan.org/address/',
-}
 
 async function loadRepoPage(args: { q: string; sort: Sort; cursor: number | null; signal?: AbortSignal }): Promise<ReposResponse> {
   const params = new URLSearchParams({ limit: String(PAGE_SIZE), sort: args.sort })
@@ -34,10 +29,6 @@ function formatAddress(address: `0x${string}`) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
-function explorerAddressUrl(chainId: number, address: `0x${string}`) {
-  return `${EXPLORER_ADDRESS_URLS[chainId] ?? EXPLORER_ADDRESS_URLS[sepolia.id]}${address}`
-}
-
 function formatRegisteredAt(timestamp: number) {
   return COMPACT_DATE.format(new Date(timestamp * 1000))
 }
@@ -48,6 +39,7 @@ export function RepositoriesTable() {
   const [state, setState] = useState<LoadState>({ status: 'loading', repos: [], nextCursor: null })
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null)
+  const [selectedRepo, setSelectedRepo] = useState<Repo | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -125,7 +117,7 @@ export function RepositoriesTable() {
 
       {state.status === 'loaded' && (
         <>
-          <RepoTable initialRepos={state.repos} q={q} sort={sort} />
+          <RepoTable initialRepos={state.repos} q={q} sort={sort} onSelectRepo={setSelectedRepo} />
           {state.nextCursor != null && (
             <div className="pagination">
               <Button variant="ghost" onClick={loadMore} disabled={isLoadingMore}>
@@ -136,12 +128,12 @@ export function RepositoriesTable() {
           )}
         </>
       )}
+      <RepositoryDetailsDrawer repo={selectedRepo} onClose={() => setSelectedRepo(null)} />
     </section>
   )
 }
 
-function RepoTable({ initialRepos, q, sort }: { initialRepos: Repo[]; q: string; sort: Sort }) {
-  const chainId = useChainId()
+function RepoTable({ initialRepos, q, sort, onSelectRepo }: { initialRepos: Repo[]; q: string; sort: Sort; onSelectRepo: (repo: Repo) => void }) {
   const repos = useLiveRepos(initialRepos, { q, sort })
 
   if (repos.length === 0) return <Notice>No repos registered yet.</Notice>
@@ -166,10 +158,21 @@ function RepoTable({ initialRepos, q, sort }: { initialRepos: Repo[]; q: string;
             const registeredDate = new Date(repo.registeredAt * 1000)
 
             return (
-              <tr key={`${repo.repoId}-${repo.registrant}`}>
+              <tr
+                key={`${repo.repoId}-${repo.registrant}`}
+                className="repo-table-row"
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelectRepo(repo)}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter' && event.key !== ' ') return
+                  event.preventDefault()
+                  onSelectRepo(repo)
+                }}
+              >
                 <TableCell>
                   {github ? (
-                    <a className="repo-github-link fcf-link" href={github.htmlUrl} target="_blank" rel="noreferrer">
+                    <a className="repo-github-link fcf-link" href={github.htmlUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
                       <img className="repo-github-icon" src={githubLogoUrl} alt="" />
                       {github.fullName}
                     </a>
@@ -189,13 +192,13 @@ function RepoTable({ initialRepos, q, sort }: { initialRepos: Repo[]; q: string;
                   ) : '-'}
                 </TableCell>
                 <TableCell mono>
-                  <a className="repo-address fcf-link" href={explorerAddressUrl(chainId, repo.registrant)} target="_blank" rel="noreferrer">
+                  <a className="repo-address fcf-link" href={explorerAddressUrl(repo.chainId, repo.registrant)} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
                     {formatAddress(repo.registrant)}
                   </a>
                 </TableCell>
                 <TableCell mono>
                   {repo.githubOwnerUsername === 'not found' ? ownerLabel : (
-                    <a className="repo-owner-link fcf-link" href={`https://github.com/${repo.githubOwnerUsername}`} target="_blank" rel="noreferrer">
+                    <a className="repo-owner-link fcf-link" href={`https://github.com/${repo.githubOwnerUsername}`} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
                       {ownerLabel}
                     </a>
                   )}

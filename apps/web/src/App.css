@@ -163,6 +163,15 @@
   padding: 11px 12px;
 }
 
+.repositories-table .repo-table-row {
+  cursor: pointer;
+}
+
+.repositories-table .repo-table-row:focus-visible {
+  outline: var(--bw-2) solid var(--accent-deep);
+  outline-offset: -2px;
+}
+
 .repositories-table thead th:first-child,
 .repositories-table tbody td:first-child {
   padding-left: 0;
@@ -210,6 +219,176 @@
   white-space: nowrap;
 }
 
+.repo-drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: color-mix(in oklab, var(--ink) 32%, transparent);
+}
+
+.repo-drawer {
+  position: fixed;
+  z-index: 41;
+  inset: 0 0 0 auto;
+  width: min(100%, 480px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border-left: var(--bw) solid var(--rule);
+  background: var(--bg);
+  box-shadow: var(--shadow-pop);
+}
+
+.repo-drawer__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border-bottom: var(--bw) solid var(--rule);
+}
+
+.repo-drawer__title {
+  margin: 0;
+  min-width: 0;
+  color: var(--fg);
+  font-size: var(--t-h4);
+  font-weight: var(--w-regular);
+  line-height: var(--lh-snug);
+  overflow-wrap: anywhere;
+}
+
+.repo-drawer__title strong {
+  font-weight: var(--w-semibold);
+}
+
+.repo-drawer__close {
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: var(--bw) solid var(--rule-strong);
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+}
+
+.repo-drawer__middle {
+  overflow-y: auto;
+  padding: var(--space-6);
+}
+
+.repo-drawer__section + .repo-drawer__section {
+  margin-top: var(--space-8);
+}
+
+.repo-drawer__section h3 {
+  margin: 0 0 var(--space-3);
+  color: var(--fg-dim);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  font-weight: var(--w-medium);
+  letter-spacing: var(--ls-mono);
+  text-transform: uppercase;
+}
+
+.repo-details-list {
+  margin: 0;
+  border-top: var(--bw) solid var(--rule);
+}
+
+.repo-details-list > div {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: var(--bw) solid var(--rule);
+}
+
+.repo-details-list dt {
+  color: var(--fg-dim);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-mono);
+  text-transform: uppercase;
+}
+
+.repo-details-list dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+
+.repo-detail-muted {
+  display: inline-flex;
+  margin-left: var(--space-2);
+  color: var(--fg-dim);
+}
+
+.repo-copy-value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.repo-copy-value > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.repo-copy-button {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--fg-dim);
+  cursor: pointer;
+  padding: 0;
+  transition: color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.repo-copy-button:hover {
+  color: var(--fg);
+}
+
+.repo-copy-button:active {
+  transform: var(--press);
+}
+
+.repo-copy-button svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.repo-drawer__bottom {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-top: var(--bw) solid var(--rule);
+  background: var(--bg);
+}
+
+.repo-drawer__bottom .fcf-btn {
+  width: 100%;
+}
+
+.repo-drawer__github-icon {
+  width: 14px;
+  height: 14px;
+  filter: invert(1);
+  flex: 0 0 auto;
+}
+
 .pagination {
   display: flex;
   align-items: center;
@@ -246,5 +425,23 @@
 
   .registry-controls {
     grid-template-columns: 1fr;
+  }
+
+  .repo-drawer {
+    width: 100%;
+  }
+
+  .repo-drawer__top,
+  .repo-drawer__middle {
+    padding: var(--space-4);
+  }
+
+  .repo-drawer__bottom {
+    padding: var(--space-4);
+  }
+
+  .repo-details-list > div {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
   }
 }

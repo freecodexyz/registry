@@ -12,6 +12,10 @@ export type Repo = {
   githubOwnerId: number;
   githubOwnerUsername: string | 'not found';
   registeredAt: number;
+  blockNumber: number;
+  transactionHash: `0x${string}` | null;
+  chainId: number;
+  registryAddress: `0x${string}`;
   github: GithubRepo | 'not found';
 }
 

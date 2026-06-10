@@ -28,6 +28,7 @@ const EVENT_CACHE_TTL_MS            = 10_000;
 const DEFAULT_PAGE_SIZE             = 50;
 const MAX_PAGE_SIZE                 = 200;
 const SHOULD_RUN_INDEXER            = process.env.INDEXER === "1" || process.env.INDEXER?.toLowerCase() === "true";
+const CHAIN_ID                      = sepolia.id;
 
 // server can't start with these
 if (!RIK_ADDRESS) die(new Error("RIK contract address is missing"));
@@ -59,9 +60,13 @@ type RepoPayload = {
     githubOwnerId: number;
     githubOwnerUsername: string;
     registeredAt: number;
+    blockNumber: number;
+    transactionHash: string | null;
+    chainId: number;
+    registryAddress: `0x${string}`;
     github: RepoMetaData | "not found";
 };
-type RepoStreamPayload = RepoPayload & { blockNumber: number };
+type RepoStreamPayload = RepoPayload;
 type RepoWithMetaRow = RepoRow & Pick<GithubMetaRow, "full_name" | "description" | "language" | "stars" | "html_url" | "owner_name">;
 type Sort = "registered_at_desc" | "stars_desc" | "registered_at_asc";
 
@@ -130,7 +135,7 @@ app.get("/api/repos", async (req, reply) => {
             if (repoId == null || registrant == null || githubOwnerId == null || registeredAt == null || log.blockNumber == null) continue;
             // Refreshes replay overlapping block ranges; repo_id is the stable event key,
             // so INSERT OR IGNORE makes the SQLite index idempotent.
-            insertRepo.run(String(repoId), registrant, Number(githubOwnerId), Number(registeredAt), Number(log.blockNumber));
+            insertRepo.run(String(repoId), registrant, Number(githubOwnerId), Number(registeredAt), Number(log.blockNumber), log.transactionHash ?? null, CHAIN_ID);
         }
     } catch (err) {
         // Once SQLite is primed, availability is better than failing the page because
@@ -153,7 +158,7 @@ app.get("/api/repos", async (req, reply) => {
 
     const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
     const rows = db.prepare(`
-        SELECT r.repo_id, r.registrant, r.github_owner_id, r.registered_at, r.block_number,
+        SELECT r.repo_id, r.registrant, r.github_owner_id, r.registered_at, r.block_number, r.transaction_hash, r.chain_id,
                m.full_name, m.description, m.language, m.stars, m.html_url, m.owner_name
         FROM repos r
         LEFT JOIN github_meta m ON m.repo_id = r.repo_id
@@ -212,6 +217,10 @@ app.get("/api/repos", async (req, reply) => {
             githubOwnerId: repo.github_owner_id,
             githubOwnerUsername: value.ownerUsername ?? "not found",
             registeredAt: repo.registered_at,
+            blockNumber: repo.block_number,
+            transactionHash: repo.transaction_hash,
+            chainId: repo.chain_id,
+            registryAddress: RIK_ADDRESS,
             github: value.metadata ?? "not found",
         }
     }));
@@ -282,7 +291,7 @@ app.get("/api/repos/stream", async (req, reply) => {
 
     if (typeof lastId === "string" && lastId) {
         const rows = db.prepare(
-            `SELECT r.repo_id, r.registrant, r.github_owner_id, r.registered_at, r.block_number,
+            `SELECT r.repo_id, r.registrant, r.github_owner_id, r.registered_at, r.block_number, r.transaction_hash, r.chain_id,
                     m.full_name, m.description, m.language, m.stars, m.html_url, m.owner_name
              FROM repos r
              LEFT JOIN github_meta m ON m.repo_id = r.repo_id
@@ -368,6 +377,9 @@ function repoPayloadFromRow(row: RepoWithMetaRow): RepoStreamPayload {
         githubOwnerUsername: row.owner_name ?? "not found",
         registeredAt: row.registered_at,
         blockNumber: row.block_number,
+        transactionHash: row.transaction_hash,
+        chainId: row.chain_id,
+        registryAddress: RIK_ADDRESS,
         github: row.full_name && row.html_url ? {
             fullName: row.full_name,
             description: row.description,
@@ -380,4 +392,4 @@ function repoPayloadFromRow(row: RepoWithMetaRow): RepoStreamPayload {
 
 if(!SHOULD_RUN_INDEXER) await app.listen({ port: 3000, host: "0.0.0.0" });
 
-export {client, RepoRegisteredEvent, RIK_ADDRESS, DEFAULT_LIST_BLOCK_RANGE};
+export {client, RepoRegisteredEvent, RIK_ADDRESS, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID};

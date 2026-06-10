@@ -2,6 +2,9 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
+const configuredChainId = Number(process.env.CHAIN_ID ?? 11155111);
+const DEFAULT_CHAIN_ID = Number.isFinite(configuredChainId) ? configuredChainId : 11155111;
+
 function initDbPath(dbPath: string): string {
   mkdirSync(dirname(dbPath), { recursive: true }); return dbPath;
 }
@@ -16,7 +19,9 @@ CREATE TABLE IF NOT EXISTS repos (
   registrant TEXT NOT NULL,
   github_owner_id INTEGER NOT NULL,
   registered_at INTEGER NOT NULL,
-  block_number INTEGER NOT NULL
+  block_number INTEGER NOT NULL,
+  transaction_hash TEXT,
+  chain_id INTEGER NOT NULL DEFAULT ${DEFAULT_CHAIN_ID}
 );
 CREATE INDEX IF NOT EXISTS repos_by_registered_at ON repos (registered_at);
 CREATE TABLE IF NOT EXISTS github_meta (
@@ -34,12 +39,18 @@ CREATE TABLE IF NOT EXISTS indexer_state (
 );
 `);
 
+const repoColumns = new Set((db.prepare("PRAGMA table_info(repos)").all() as { name: string }[]).map((column) => column.name));
+if (!repoColumns.has("transaction_hash")) db.exec("ALTER TABLE repos ADD COLUMN transaction_hash TEXT");
+if (!repoColumns.has("chain_id")) db.exec(`ALTER TABLE repos ADD COLUMN chain_id INTEGER NOT NULL DEFAULT ${DEFAULT_CHAIN_ID}`);
+
 export type RepoRow = {
   repo_id: string;
   registrant: string;
   github_owner_id: number;
   registered_at: number;
   block_number: number;
+  transaction_hash: string | null;
+  chain_id: number;
 };
 
 export type GithubMetaRow = {
@@ -54,13 +65,20 @@ export type GithubMetaRow = {
 };
 
 export const insertRepo = db.prepare(`
-INSERT OR IGNORE INTO repos
-  (repo_id, registrant, github_owner_id, registered_at, block_number)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO repos
+  (repo_id, registrant, github_owner_id, registered_at, block_number, transaction_hash, chain_id)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(repo_id) DO UPDATE SET
+  registrant=excluded.registrant,
+  github_owner_id=excluded.github_owner_id,
+  registered_at=excluded.registered_at,
+  block_number=excluded.block_number,
+  transaction_hash=COALESCE(excluded.transaction_hash, repos.transaction_hash),
+  chain_id=excluded.chain_id
 `);
 
 export const listRepos = db.prepare(`
-SELECT repo_id, registrant, github_owner_id, registered_at, block_number
+SELECT repo_id, registrant, github_owner_id, registered_at, block_number, transaction_hash, chain_id
 FROM repos
 ORDER BY registered_at DESC
 `);
