@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Repo, Sort } from "./App";
+import type { Repo, Sort } from "./repositoryTypes";
 
 export function useLiveRepos(initial: Repo[], options: { q: string; sort: Sort }) {
     const [liveRepos, setLiveRepos] = useState<Repo[]>([]);
