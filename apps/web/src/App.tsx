@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ConnectButton } from './ConnectButton'
+import { Button, Eyebrow, Field, Input, Notice, Select, Status, Table, TableCell, TableHeader, TableViewport } from './components/ui'
 import { useLiveRepos } from './useLiveRepos'
 import './App.css'
 
@@ -103,41 +104,41 @@ function App() {
   }
 
   return (
-    <main className="registry">
-      <header className="registry-header">
+    <main className="registry" data-accent="emerald">
+      <header className="registry-header fcf-frame fcf-frame--accent">
         <div>
-          <p className="eyebrow">Sepolia Registry</p>
+          <Eyebrow>Sepolia Registry</Eyebrow>
           <h1>RIK Registry</h1>
+          <p className="registry-lede">Live, gated registry data indexed from Sepolia and enriched with GitHub metadata.</p>
         </div>
+        <Status>Live data</Status>
         <ConnectButton />
       </header>
 
       <section className="registry-controls" aria-label="Repository filters">
-        <label>
-          Search
-          <input
+        <Field label="Search" className="registry-search">
+          <Input
             value={q}
             onChange={(event) => setQ(event.target.value)}
             placeholder="repo, owner, language, address..."
             type="search"
           />
-        </label>
-        <label>
-          Sort
-          <select value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
+        </Field>
+        <Field label="Sort">
+          <Select value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
             <option value="registered_at_desc">Newest first</option>
             <option value="registered_at_asc">Oldest first</option>
             <option value="stars_desc">Most stars</option>
-          </select>
-        </label>
+          </Select>
+        </Field>
       </section>
 
-      {state.status === 'loading' && <p className="status">Loading repos...</p>}
+      {state.status === 'loading' && <Notice>Loading repos...</Notice>}
 
       {state.status === 'error' && (
-        <p className="status error" role="alert">
+        <Notice tone="danger" role="alert">
           {state.message}
-        </p>
+        </Notice>
       )}
 
       {state.status === 'loaded' && (
@@ -145,10 +146,10 @@ function App() {
           <RepoTable initialRepos={state.repos} q={q} sort={sort} />
           {state.nextCursor != null && (
             <div className="pagination">
-              <button type="button" onClick={loadMore} disabled={isLoadingMore}>
+              <Button variant="ghost" onClick={loadMore} disabled={isLoadingMore}>
                 {isLoadingMore ? 'Loading...' : 'Load more'}
-              </button>
-              {loadMoreError && <p className="status error" role="alert">{loadMoreError}</p>}
+              </Button>
+              {loadMoreError && <Notice tone="danger" role="alert" className="pagination-error">{loadMoreError}</Notice>}
             </div>
           )}
         </>
@@ -160,20 +161,20 @@ function App() {
 function RepoTable({ initialRepos, q, sort }: { initialRepos: Repo[]; q: string; sort: Sort }) {
   const repos = useLiveRepos(initialRepos, { q, sort })
 
-  if (repos.length === 0) return <p className="status">No repos registered yet.</p>
+  if (repos.length === 0) return <Notice>No repos registered yet.</Notice>
 
   return (
-    <div className="table-wrap">
-      <table>
+    <TableViewport>
+      <Table>
         <thead>
           <tr>
-            <th>repoId</th>
-            <th>github</th>
-            <th>language</th>
-            <th>stars</th>
-            <th>registrant</th>
-            <th>owner</th>
-            <th>registeredAt</th>
+            <TableHeader>repoId</TableHeader>
+            <TableHeader>github</TableHeader>
+            <TableHeader>language</TableHeader>
+            <TableHeader numeric>stars</TableHeader>
+            <TableHeader>registrant</TableHeader>
+            <TableHeader>owner</TableHeader>
+            <TableHeader>registeredAt</TableHeader>
           </tr>
         </thead>
         <tbody>
@@ -182,11 +183,11 @@ function RepoTable({ initialRepos, q, sort }: { initialRepos: Repo[]; q: string;
 
             return (
               <tr key={`${repo.repoId}-${repo.registrant}`}>
-                <td>{repo.repoId}</td>
-                <td>
+                <TableCell mono>{repo.repoId}</TableCell>
+                <TableCell>
                   {github ? (
                     <>
-                      <a href={github.htmlUrl} target="_blank" rel="noreferrer">
+                      <a className="fcf-link" href={github.htmlUrl} target="_blank" rel="noreferrer">
                         {github.fullName}
                       </a>
                       {github.description && (
@@ -199,18 +200,18 @@ function RepoTable({ initialRepos, q, sort }: { initialRepos: Repo[]; q: string;
                   ) : (
                     'not found'
                   )}
-                </td>
-                <td>{github?.language ?? '-'}</td>
-                <td>{github ? github.stars.toLocaleString() : '-'}</td>
-                <td>{repo.registrant}</td>
-                <td>{repo.githubOwnerUsername === 'not found' ? repo.githubOwnerId : repo.githubOwnerUsername}</td>
-                <td>{formatRegisteredAt(repo.registeredAt)}</td>
+                </TableCell>
+                <TableCell mono>{github?.language ?? '-'}</TableCell>
+                <TableCell numeric>{github ? github.stars.toLocaleString() : '-'}</TableCell>
+                <TableCell mono>{repo.registrant}</TableCell>
+                <TableCell mono>{repo.githubOwnerUsername === 'not found' ? repo.githubOwnerId : repo.githubOwnerUsername}</TableCell>
+                <TableCell mono>{formatRegisteredAt(repo.registeredAt)}</TableCell>
               </tr>
             )
           })}
         </tbody>
-      </table>
-    </div>
+      </Table>
+    </TableViewport>
   )
 }
 

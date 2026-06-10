@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { Button, KeyValue, Status } from "./components/ui";
 import { useSignIn } from "./useSignIn";
 
 export function ConnectButton() {
@@ -80,28 +81,28 @@ export function ConnectButton() {
     if (isConnected)
         return (
             <div className="connect-panel">
-                {address && <span className="wallet-address">{address.slice(0, 6)}...{address.slice(-4)}</span>}
+                {address && <KeyValue label="Wallet">{address.slice(0, 6)}...{address.slice(-4)}</KeyValue>}
                 {isSessionLoading ? (
-                    <span className="sign-in-status">checking session...</span>
+                    <Status tone="idle">checking session</Status>
                 ) : isSignedIn ? (
-                    <span className="sign-in-status">signed in</span>
+                    <Status>signed in</Status>
                 ) : (
-                    <button type="button" onClick={handleSignIn} disabled={isSigningIn}>
+                    <Button size="sm" onClick={handleSignIn} disabled={isSigningIn}>
                         {isSigningIn ? "Signing in..." : "Sign in"}
-                    </button>
+                    </Button>
                 )}
-                <button type="button" onClick={handleDisconnect} disabled={isLoggingOut}>
+                <Button variant="ghost" size="sm" onClick={handleDisconnect} disabled={isLoggingOut}>
                     {isLoggingOut ? "disconnecting..." : "disconnect"}
-                </button>
-                {errorMessage && <span className="connect-error" role="alert">{errorMessage}</span>}
+                </Button>
+                {errorMessage && <span className="fcf-hint fcf-hint--error" role="alert">{errorMessage}</span>}
             </div>
     );
     return (
         <div className="connect-panel">
             {connectors.map((c) => (
-                <button key={c.id} type="button" onClick={() => connect({connector: c})}>
+                <Button key={c.id} variant="ghost" size="sm" onClick={() => connect({connector: c})}>
                     Connect with {c.name}
-                </button>
+                </Button>
             ))}
         </div>
     );
