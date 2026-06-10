@@ -1,38 +1,75 @@
+import { useEffect, useRef, useState } from "react";
 import { useAccount, useConnect } from "wagmi";
-import { Button, KeyValue, Status } from "./components/ui";
+import { Button } from "./components/ui";
 import { useAuthSession } from "./useAuthSession";
 
 export function ConnectButton() {
     const { address, isConnected } = useAccount();
     const { connectors, connect } = useConnect();
-    const { isSessionLoading, isSignedIn, isSigningIn, isLoggingOut, errorMessage, signIn, signOut } = useAuthSession();
+    const { isSessionLoading, isSignedIn, isSigningIn, isLoggingOut, signedInAddress, signIn, signOut } = useAuthSession();
+    const [isOpen, setIsOpen] = useState(false);
+    const attemptedSignInAddress = useRef<`0x${string}` | null>(null);
+
+    useEffect(() => {
+        if (!isConnected || !address) {
+            attemptedSignInAddress.current = null;
+            return;
+        }
+
+        if (isSessionLoading || isSignedIn || isSigningIn || attemptedSignInAddress.current === address) return;
+
+        attemptedSignInAddress.current = address;
+        void signIn();
+    }, [address, isConnected, isSessionLoading, isSignedIn, isSigningIn, signIn]);
+
+    function handleConnect(connector: (typeof connectors)[number]) {
+        setIsOpen(false);
+        connect({ connector });
+    }
+
+    const displayAddress = isSignedIn ? signedInAddress : address;
 
     if (isConnected)
         return (
-            <div className="connect-panel">
-                {address && <KeyValue label="Wallet">{address.slice(0, 6)}...{address.slice(-4)}</KeyValue>}
-                {isSessionLoading ? (
-                    <Status tone="idle">checking session</Status>
-                ) : isSignedIn ? (
-                    <Status>signed in</Status>
-                ) : (
-                    <Button size="sm" onClick={signIn} disabled={isSigningIn}>
-                        {isSigningIn ? "Signing in..." : "Sign in"}
-                    </Button>
-                )}
+            <div className="connect-panel connect-panel--account">
+                {displayAddress && <span className="connect-address">{displayAddress.slice(0, 6)}...{displayAddress.slice(-4)}</span>}
                 <Button variant="ghost" size="sm" onClick={signOut} disabled={isLoggingOut}>
                     {isLoggingOut ? "disconnecting..." : "disconnect"}
                 </Button>
-                {errorMessage && <span className="fcf-hint fcf-hint--error" role="alert">{errorMessage}</span>}
             </div>
     );
+
     return (
         <div className="connect-panel">
-            {connectors.map((c) => (
-                <Button key={c.id} variant="ghost" size="sm" onClick={() => connect({connector: c})}>
-                    Connect with {c.name}
+            <div
+                className="connect-menu"
+                onBlur={(event) => {
+                    const nextTarget = event.relatedTarget;
+                    if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) setIsOpen(false);
+                }}
+                onKeyDown={(event) => {
+                    if (event.key === "Escape") setIsOpen(false);
+                }}
+            >
+                <Button
+                    size="sm"
+                    aria-haspopup="menu"
+                    aria-expanded={isOpen}
+                    onClick={() => setIsOpen((open) => !open)}
+                    disabled={connectors.length === 0}
+                >
+                    Connect wallet
                 </Button>
-            ))}
+                {isOpen && (
+                    <div className="connect-menu__list" role="menu">
+                        {connectors.map((connector) => (
+                            <Button key={connector.id} variant="ghost" size="sm" block role="menuitem" onClick={() => handleConnect(connector)}>
+                                {connector.name}
+                            </Button>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

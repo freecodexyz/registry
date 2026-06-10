@@ -69,6 +69,40 @@
   grid-column: 1 / -1;
 }
 
+.connect-panel--account {
+  gap: var(--space-3);
+}
+
+.connect-address {
+  font-family: var(--mono);
+  font-size: var(--t-mono);
+  letter-spacing: var(--ls-mono);
+  text-transform: uppercase;
+}
+
+.connect-menu {
+  position: relative;
+}
+
+.connect-menu__list {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  display: grid;
+  gap: var(--space-1);
+  min-width: 220px;
+  padding: var(--space-2);
+  border: var(--bw) solid var(--rule);
+  background: var(--bg);
+  box-shadow: var(--shadow-pop);
+}
+
+.gate-card .connect-menu__list {
+  right: auto;
+  left: 0;
+}
+
 .registry-header > .fcf-status {
   justify-self: end;
 }
