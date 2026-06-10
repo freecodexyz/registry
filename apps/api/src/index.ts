@@ -347,8 +347,8 @@ function registerOrigins(origins: string[]): void {
     if (!origins || origins.length == 0) return;
 
     // at this stage if ALLOWED_ORIGINS is defined in env parsed have already been verified to be string[] type
-    if (process.env.ALLOWED_ORIGINS && Array.isArray(parsed)) origins = origins.concat(parsed);
-    for (const origin of origins) app.register(cors, {origin, credentials: true});
+    const allowedOrigins = process.env.ALLOWED_ORIGINS && Array.isArray(parsed) ? origins.concat(parsed) : origins;
+    app.register(cors, { origin: allowedOrigins, credentials: true });
     return;
 }
 
