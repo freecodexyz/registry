@@ -30,6 +30,69 @@
   flex: 0 0 auto;
 }
 
+.top-navbar__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.top-navbar__mobile-menu {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.top-navbar__menu-button {
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  display: inline-grid;
+  place-items: center;
+  border: var(--bw) solid var(--rule-strong);
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.top-navbar__menu-button:hover {
+  background: var(--bg-soft);
+}
+
+.top-navbar__menu-button svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.top-navbar__mobile-menu-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  width: min(360px, calc(100vw - var(--space-8)));
+  padding: var(--space-2);
+  border: var(--bw) solid var(--rule);
+  background: var(--bg);
+  box-shadow: var(--shadow-pop);
+}
+
+.top-navbar__mobile-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.top-navbar__mobile-actions .connect-panel {
+  justify-content: flex-start;
+  grid-column: auto;
+}
+
+.top-navbar__mobile-actions .connect-menu__list {
+  right: auto;
+  left: 0;
+}
+
 .top-navbar__logo {
   display: block;
   width: 40px;
@@ -39,6 +102,38 @@
 .top-navbar--mobile .top-navbar__logo {
   width: 32px;
   height: 32px;
+}
+
+.theme-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  padding: 0;
+  border: var(--bw) solid var(--rule-strong);
+  background: transparent;
+  color: var(--fg-dim);
+  cursor: pointer;
+}
+
+.theme-switch:hover {
+  color: var(--fg);
+  background: var(--bg-soft);
+}
+
+.theme-switch__icon {
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--fg);
+}
+
+.theme-switch svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
 }
 
 .registry {
@@ -210,6 +305,10 @@
   width: 0.9em;
   height: 0.9em;
   flex: 0 0 auto;
+}
+
+[data-theme='dark'] .repo-github-icon {
+  filter: invert(1);
 }
 
 .repo-stars {
@@ -390,6 +489,17 @@
 
 .repo-drawer__bottom .fcf-btn {
   width: 100%;
+}
+
+.repo-drawer__view-repo {
+  --_bg: #000;
+  --_fg: #fff;
+  --_bd: #000;
+  color: #fff;
+}
+
+.repo-drawer__view-repo:hover {
+  background: #111;
 }
 
 .repo-drawer__github-icon {

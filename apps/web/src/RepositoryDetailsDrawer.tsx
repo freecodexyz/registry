@@ -132,12 +132,12 @@ export function RepositoryDetailsDrawer({ repo, onClose }: { repo: Repo | null; 
 
         <footer className="repo-drawer__bottom">
           {github ? (
-            <ButtonLink href={github.htmlUrl} target="_blank" rel="noreferrer" variant="dark" size="sm">
+            <ButtonLink className="repo-drawer__view-repo" href={github.htmlUrl} target="_blank" rel="noreferrer" variant="dark" size="sm">
               <img className="repo-drawer__github-icon" src={githubLogoUrl} alt="" />
               View Repo
             </ButtonLink>
           ) : (
-            <Button variant="dark" size="sm" disabled>
+            <Button className="repo-drawer__view-repo" variant="dark" size="sm" disabled>
               <img className="repo-drawer__github-icon" src={githubLogoUrl} alt="" />
               View Repo
             </Button>
