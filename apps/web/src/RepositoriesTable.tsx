@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react'
 import githubLogoUrl from './assets/GitHub_Invertocat_Black.svg'
-import { Button, Field, Input, Notice, Select, Table, TableCell, TableHeader, TableViewport } from './components/ui'
+import { Field, Input, Notice, Pagination, PaginationButton, Select, Table, TableCell, TableHeader, TableViewport } from './components/ui'
 import { explorerAddressUrl } from './explorers'
 import { RepositoryDetailsDrawer } from './RepositoryDetailsDrawer'
 import type { Repo, ReposResponse, Sort } from './repositoryTypes'
 import { useLiveRepos } from './useLiveRepos'
 
 type LoadState =
-  | { status: 'loading'; repos: Repo[]; nextCursor: number | null }
-  | { status: 'loaded'; repos: Repo[]; nextCursor: number | null }
-  | { status: 'error'; repos: Repo[]; nextCursor: number | null; message: string }
+  | { status: 'loading'; pages: RepoPage[]; currentPage: number }
+  | { status: 'loaded'; pages: RepoPage[]; currentPage: number }
+  | { status: 'error'; pages: RepoPage[]; currentPage: number; message: string }
+
+type RepoPage = {
+  repos: Repo[];
+  nextCursor: number | null;
+}
 
 const PAGE_SIZE = 50
 const COMPACT_DATE = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
@@ -36,7 +41,7 @@ function formatRegisteredAt(timestamp: number) {
 export function RepositoriesTable() {
   const [q, setQ] = useState('')
   const [sort, setSort] = useState<Sort>('registered_at_desc')
-  const [state, setState] = useState<LoadState>({ status: 'loading', repos: [], nextCursor: null })
+  const [state, setState] = useState<LoadState>({ status: 'loading', pages: [], currentPage: 0 })
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null)
   const [selectedRepo, setSelectedRepo] = useState<Repo | null>(null)
@@ -45,18 +50,18 @@ export function RepositoriesTable() {
     const controller = new AbortController()
 
     async function loadRepos() {
-      setState({ status: 'loading', repos: [], nextCursor: null })
+      setState({ status: 'loading', pages: [], currentPage: 0 })
       setLoadMoreError(null)
 
       try {
         const page = await loadRepoPage({ q, sort, cursor: null, signal: controller.signal })
-        setState({ status: 'loaded', repos: page.repos, nextCursor: page.nextCursor })
+        setState({ status: 'loaded', pages: [page], currentPage: 0 })
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
         setState({
           status: 'error',
-          repos: [],
-          nextCursor: null,
+          pages: [],
+          currentPage: 0,
           message: err instanceof Error ? err.message : 'Unable to load repos',
         })
       }
@@ -67,18 +72,34 @@ export function RepositoriesTable() {
     return () => controller.abort()
   }, [q, sort])
 
-  async function loadMore() {
-    if (state.status !== 'loaded' || state.nextCursor == null || isLoadingMore) return
+  function goToPage(pageIndex: number) {
+    setState((cur) => cur.status === 'loaded' && cur.pages[pageIndex] ? { ...cur, currentPage: pageIndex } : cur)
+  }
+
+  function goToPreviousPage() {
+    setState((cur) => cur.status === 'loaded' && cur.currentPage > 0 ? { ...cur, currentPage: cur.currentPage - 1 } : cur)
+  }
+
+  async function goToNextPage() {
+    if (state.status !== 'loaded' || isLoadingMore) return
+
+    if (state.currentPage < state.pages.length - 1) {
+      setState((cur) => cur.status === 'loaded' ? { ...cur, currentPage: cur.currentPage + 1 } : cur)
+      return
+    }
+
+    const currentPage = state.pages[state.currentPage]
+    if (!currentPage || currentPage.nextCursor == null) return
 
     setIsLoadingMore(true)
     setLoadMoreError(null)
 
     try {
-      const page = await loadRepoPage({ q, sort, cursor: state.nextCursor })
+      const page = await loadRepoPage({ q, sort, cursor: currentPage.nextCursor })
       setState((cur) => cur.status === 'loaded' ? {
         status: 'loaded',
-        repos: [...cur.repos, ...page.repos],
-        nextCursor: page.nextCursor,
+        pages: [...cur.pages, page],
+        currentPage: cur.currentPage + 1,
       } : cur)
     } catch (err) {
       setLoadMoreError(err instanceof Error ? err.message : 'Unable to load more repos')
@@ -117,15 +138,31 @@ export function RepositoriesTable() {
 
       {state.status === 'loaded' && (
         <>
-          <RepoTable initialRepos={state.repos} q={q} sort={sort} onSelectRepo={setSelectedRepo} />
-          {state.nextCursor != null && (
-            <div className="pagination">
-              <Button variant="ghost" onClick={loadMore} disabled={isLoadingMore}>
-                {isLoadingMore ? 'Loading...' : 'Load more'}
-              </Button>
-              {loadMoreError && <Notice tone="danger" role="alert" className="pagination-error">{loadMoreError}</Notice>}
-            </div>
-          )}
+          <RepoTable initialRepos={state.pages[state.currentPage]?.repos ?? []} q={q} sort={sort} onSelectRepo={setSelectedRepo} />
+          <div className="pagination">
+            <Pagination className="repo-pagination" aria-label="Repository pages">
+              <PaginationButton aria-label="Previous page" onClick={goToPreviousPage} disabled={state.currentPage === 0 || isLoadingMore}>
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M10.5 3.5 6 8l4.5 4.5-1.2 1.2L3.6 8l5.7-5.7 1.2 1.2Z" />
+                </svg>
+              </PaginationButton>
+              {state.pages.map((_, pageIndex) => (
+                <PaginationButton key={pageIndex} current={pageIndex === state.currentPage} onClick={() => goToPage(pageIndex)} disabled={isLoadingMore}>
+                  {pageIndex + 1}
+                </PaginationButton>
+              ))}
+              <PaginationButton
+                aria-label="Next page"
+                onClick={goToNextPage}
+                disabled={isLoadingMore || (state.currentPage >= state.pages.length - 1 && state.pages[state.currentPage]?.nextCursor == null)}
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="m5.5 12.5 4.5-4.5-4.5-4.5 1.2-1.2L12.4 8l-5.7 5.7-1.2-1.2Z" />
+                </svg>
+              </PaginationButton>
+            </Pagination>
+            {loadMoreError && <Notice tone="danger" role="alert" className="pagination-error">{loadMoreError}</Notice>}
+          </div>
         </>
       )}
       <RepositoryDetailsDrawer repo={selectedRepo} onClose={() => setSelectedRepo(null)} />

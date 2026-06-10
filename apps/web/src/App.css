@@ -44,6 +44,9 @@
 .registry {
   width: min(100%, 1126px);
   margin-inline: auto;
+  min-height: calc(100svh - 73px);
+  display: flex;
+  flex-direction: column;
   padding: var(--space-16) var(--space-8);
 }
 
@@ -144,6 +147,13 @@
   padding: var(--space-5);
   border: var(--bw) solid var(--rule);
   background: var(--bg-soft);
+}
+
+.repositories {
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
 }
 
 .data-table-scroll {
@@ -392,17 +402,60 @@
 .pagination {
   display: flex;
   align-items: center;
+  justify-content: center;
   flex-wrap: wrap;
   gap: var(--space-3);
-  margin-top: var(--space-4);
+  margin-top: auto;
+  padding-top: var(--space-8);
 }
 
 .pagination-error {
   padding: var(--space-3) var(--space-4);
 }
 
+.repo-pagination {
+  gap: var(--space-3);
+  border: 0;
+}
+
+.repo-pagination button {
+  min-width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fg-dim);
+}
+
+.repo-pagination button:first-child {
+  border-left: 0;
+}
+
+.repo-pagination button:hover {
+  background: transparent;
+  color: var(--fg);
+}
+
+.repo-pagination button[aria-current='true'] {
+  background: transparent;
+  color: var(--fg);
+  font-weight: var(--w-semibold);
+}
+
+.repo-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.repo-pagination svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
 @media (max-width: 720px) {
   .registry {
+    min-height: calc(100svh - 65px);
     padding: var(--space-8) var(--space-4);
   }
 
