@@ -3,6 +3,34 @@
   padding: var(--space-16) var(--space-8);
 }
 
+.gate-view {
+  width: min(100%, 1126px);
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-16) var(--space-8);
+}
+
+.gate-card {
+  width: min(100%, 560px);
+  padding: var(--space-8);
+  border: var(--bw) solid var(--rule);
+  background: var(--bg);
+}
+
+.gate-card h1 {
+  margin: 0 0 var(--space-6);
+  color: var(--fg);
+  font-size: clamp(40px, 8vw, var(--t-h1));
+  font-weight: var(--w-semibold);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-display);
+}
+
+.gate-card .connect-panel {
+  justify-content: flex-start;
+}
+
 .registry-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -80,6 +108,14 @@
 @media (max-width: 720px) {
   .registry {
     padding: var(--space-8) var(--space-4);
+  }
+
+  .gate-view {
+    padding: var(--space-8) var(--space-4);
+  }
+
+  .gate-card {
+    padding: var(--space-6);
   }
 
   .registry-header {

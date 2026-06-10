@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ConnectButton } from './ConnectButton'
+import { GateView } from './GateView'
 import { Button, Eyebrow, Field, Input, Notice, Select, Status, Table, TableCell, TableHeader, TableViewport } from './components/ui'
+import { useAuthSession } from './useAuthSession'
 import { useLiveRepos } from './useLiveRepos'
 import './App.css'
 
@@ -51,6 +53,7 @@ async function loadRepoPage(args: { q: string; sort: Sort; cursor: number | null
 }
 
 function App() {
+  const { isSignedIn, isSessionLoading } = useAuthSession()
   const [q, setQ] = useState('')
   const [sort, setSort] = useState<Sort>('registered_at_desc')
   const [state, setState] = useState<LoadState>({ status: 'loading', repos: [], nextCursor: null })
@@ -58,6 +61,8 @@ function App() {
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (isSessionLoading || !isSignedIn) return
+
     const controller = new AbortController()
 
     async function loadRepos() {
@@ -81,7 +86,7 @@ function App() {
     void loadRepos()
 
     return () => controller.abort()
-  }, [q, sort])
+  }, [q, sort, isSessionLoading, isSignedIn])
 
   async function loadMore() {
     if (state.status !== 'loaded' || state.nextCursor == null || isLoadingMore) return
@@ -102,6 +107,8 @@ function App() {
       setIsLoadingMore(false)
     }
   }
+
+  if (isSessionLoading || !isSignedIn) return <GateView />
 
   return (
     <main className="registry" data-accent="emerald">
