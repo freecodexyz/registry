@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { ConnectButton } from './ConnectButton'
 import { GateView } from './GateView'
-import { Button, Eyebrow, Field, Input, Notice, Select, Status, Table, TableCell, TableHeader, TableViewport } from './components/ui'
+import { TopNavbar } from './TopNavbar'
+import { Button, Field, Input, Notice, Select, Table, TableCell, TableHeader, TableViewport } from './components/ui'
 import { useAuthSession } from './useAuthSession'
 import { useLiveRepos } from './useLiveRepos'
 import './App.css'
@@ -108,58 +108,65 @@ function App() {
     }
   }
 
-  if (isSessionLoading || !isSignedIn) return <GateView />
+  if (isSessionLoading || !isSignedIn) return (
+    <>
+      <TopNavbar />
+      <GateView />
+    </>
+  )
 
   return (
-    <main className="registry" data-accent="emerald">
-      <header className="registry-header fcf-frame fcf-frame--accent">
-        <div>
-          <h1>RIK Registry</h1>
-          <p className="registry-lede">Live, gated registry data indexed from Sepolia and enriched with GitHub metadata.</p>
-        </div>
-        <ConnectButton />
-      </header>
+    <>
+      <TopNavbar />
+      <main className="registry" data-accent="emerald">
+        <header className="registry-header fcf-frame fcf-frame--accent">
+          <div>
+            <h1>RIK Registry</h1>
+            <p className="registry-lede">Live, gated registry data indexed from Sepolia and enriched with GitHub metadata.</p>
+          </div>
+        </header>
 
-      <section className="registry-controls" aria-label="Repository filters">
-        <Field label="Search" className="registry-search">
-          <Input
-            value={q}
-            onChange={(event) => setQ(event.target.value)}
-            placeholder="repo, owner, language, address..."
-            type="search"
-          />
-        </Field>
-        <Field label="Sort">
-          <Select value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
-            <option value="registered_at_desc">Newest first</option>
-            <option value="registered_at_asc">Oldest first</option>
-            <option value="stars_desc">Most stars</option>
-          </Select>
-        </Field>
-      </section>
+        <section className="registry-controls" aria-label="Repository filters">
+          <Field label="Search" className="registry-search">
+            <Input
+              value={q}
+              onChange={(event) => setQ(event.target.value)}
+              placeholder="repo, owner, language, address..."
+              type="search"
+            />
+          </Field>
+          <Field label="Sort">
+            <Select value={sort} onChange={(event) => setSort(event.target.value as Sort)}>
+              <option value="registered_at_desc">Newest first</option>
+              <option value="registered_at_asc">Oldest first</option>
+              <option value="stars_desc">Most stars</option>
+            </Select>
+          </Field>
+        </section>
 
-      {state.status === 'loading' && <Notice>Loading repos...</Notice>}
+        {state.status === 'loading' && <Notice>Loading repos...</Notice>}
 
-      {state.status === 'error' && (
-        <Notice tone="danger" role="alert">
-          {state.message}
-        </Notice>
-      )}
+        {state.status === 'error' && (
+          <Notice tone="danger" role="alert">
+            {state.message}
+          </Notice>
+        )}
 
-      {state.status === 'loaded' && (
-        <>
-          <RepoTable initialRepos={state.repos} q={q} sort={sort} />
-          {state.nextCursor != null && (
-            <div className="pagination">
-              <Button variant="ghost" onClick={loadMore} disabled={isLoadingMore}>
-                {isLoadingMore ? 'Loading...' : 'Load more'}
-              </Button>
-              {loadMoreError && <Notice tone="danger" role="alert" className="pagination-error">{loadMoreError}</Notice>}
-            </div>
-          )}
-        </>
-      )}
-    </main>
+        {state.status === 'loaded' && (
+          <>
+            <RepoTable initialRepos={state.repos} q={q} sort={sort} />
+            {state.nextCursor != null && (
+              <div className="pagination">
+                <Button variant="ghost" onClick={loadMore} disabled={isLoadingMore}>
+                  {isLoadingMore ? 'Loading...' : 'Load more'}
+                </Button>
+                {loadMoreError && <Notice tone="danger" role="alert" className="pagination-error">{loadMoreError}</Notice>}
+              </div>
+            )}
+          </>
+        )}
+      </main>
+    </>
   )
 }
 
