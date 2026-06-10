@@ -1,0 +1,38 @@
+services:
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    environment:
+      CONTRACT_ADDRESS:       ${CONTRACT_ADDRESS}
+      GATE_TOKEN_ADDRESS:     ${GATE_TOKEN_ADDRESS}
+      GATE_TOKEN_MIN_BALANCE: ${GATE_TOKEN_MIN_BALANCE}
+      RPC_URL:                ${RPC_URL}
+      SIWE_DOMAIN:            ${SIWE_DOMAIN}
+      SESSION_KEY:            ${SESSION_KEY}
+      GITHUB_TOKEN:           ${GITHUB_TOKEN}
+      ALLOWED_ORIGINS:        ${ALLOWED_ORIGINS}
+      DB_PATH:                /data/registry.db
+      INDEXER:                "false"
+    volumes:  ["registry-data:/data"]
+    ports:    ["3000:3000"]
+  
+  indexer:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    environment:
+      CONTRACT_ADDRESS:       ${CONTRACT_ADDRESS}
+      GATE_TOKEN_ADDRESS:     ${GATE_TOKEN_ADDRESS}
+      GATE_TOKEN_MIN_BALANCE: ${GATE_TOKEN_MIN_BALANCE}
+      RPC_URL:                ${RPC_URL}
+      SIWE_DOMAIN:            ${SIWE_DOMAIN}
+      SESSION_KEY:            ${SESSION_KEY}
+      GITHUB_TOKEN:           ${GITHUB_TOKEN}
+      DB_PATH:                /data/registry.db
+      INDEXER:                "true" 
+    volumes:  ["registry-data:/data"]
+
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    environment: { VITE_API_URL: "http://localhost:3000" }
+    ports: ["5173:80"]
+
+volumes:
+  registry-data:
