@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import githubLogoUrl from './assets/GitHub_Invertocat_Black.svg'
-import { Field, Input, Notice, Pagination, PaginationButton, Select, Table, TableCell, TableHeader, TableViewport } from './components/ui'
+import { Field, Input, Notice, Pagination, PaginationButton, Select, Table, TableCell, TableHeader, TableViewport } from '@freecodexyz/ui'
 import { explorerAddressUrl } from './explorers'
 import { RepositoryDetailsDrawer } from './RepositoryDetailsDrawer'
 import type { Repo, ReposResponse, Sort } from './repositoryTypes'

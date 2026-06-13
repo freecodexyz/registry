@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAccount, useConnect } from "wagmi";
-import { Button } from "./components/ui";
+import { Button } from '@freecodexyz/ui';
 import { useAuthSession } from "./useAuthSession";
 
 export function ConnectButton() {

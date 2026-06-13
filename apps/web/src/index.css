@@ -1,4 +1,4 @@
-@import './styles/design-system.css';
+@import '@freecodexyz/ui/styles.css';
 
 #root {
   width: min(100%, var(--maxw));

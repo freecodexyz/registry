@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import githubLogoUrl from './assets/GitHub_Invertocat_Black.svg'
-import { Button, ButtonLink } from './components/ui'
+import { Button, ButtonLink } from '@freecodexyz/ui'
 import { chainLabel, explorerAddressUrl, explorerBlockUrl, explorerTxUrl } from './explorers'
 import type { Repo } from './repositoryTypes'
 
