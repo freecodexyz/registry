@@ -51,7 +51,7 @@
 .final-cta__heading {
   max-width: 880px;
   margin: 0;
-  color: var(--fg);
+  color: color-mix(in oklab, var(--fg) 82%, transparent);
   font-size: clamp(32px, 4.4vw, 64px);
   font-weight: var(--w-medium);
   letter-spacing: -0.044em;
@@ -59,7 +59,7 @@
 }
 
 .final-cta__heading span {
-  /* color: var(--accent); */
+  color: var(--fg);
   font-family: var(--mono);
   letter-spacing: -0.08em;
 }
