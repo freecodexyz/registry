@@ -16,10 +16,9 @@ const iconProps = {
 function KeyIcon() {
   return (
     <svg {...iconProps} aria-hidden="true">
-      <circle cx="7.5" cy="14.5" r="3.5" />
-      <path d="m10 12 8-8" />
-      <path d="m15 5 3 3" />
-      <path d="m13 7 2 2" />
+      <circle cx="7.5" cy="12" r="3.5" />
+      <path d="M11 12h9" />
+      <path d="M17 12v3" />
     </svg>
   )
 }
