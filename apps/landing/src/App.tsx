@@ -4,7 +4,7 @@ import './App.css'
 
 function App() {
   return (
-    <main className="landing" data-accent="emerald">
+    <main className="landing">
       <Navbar />
       <Hero />
     </main>
