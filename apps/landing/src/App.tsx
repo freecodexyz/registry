@@ -1,3 +1,4 @@
+import { FinalCtaSection } from './components/FinalCtaSection'
 import { Hero } from './components/Hero'
 import { MessagingSection } from './components/MessagingSection'
 import { Navbar } from './components/Navbar'
@@ -11,6 +12,7 @@ function App() {
       <Hero />
       <ProtocolSection />
       <MessagingSection />
+      <FinalCtaSection />
     </main>
   )
 }
