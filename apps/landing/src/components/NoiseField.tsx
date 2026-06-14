@@ -126,6 +126,7 @@ export function NoiseField({
     let raf = 0
     let start = performance.now()
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const visibleCells: number[] = []
 
     function resize() {
       const dpr = window.devicePixelRatio || 1
@@ -140,6 +141,7 @@ export function NoiseField({
       raf = 0
       const time = reducedMotion ? 0 : ((now - start) / 1000) * speed
       context.clearRect(0, 0, width, height)
+      visibleCells.length = 0
       if (width < 4 || height < 4) {
         raf = window.requestAnimationFrame(draw)
         return
@@ -168,8 +170,37 @@ export function NoiseField({
           }
           if (alpha > 1) alpha = 1
 
+          visibleCells.push(col * safeCell, row * safeCell, alpha)
+        }
+      }
+
+      if (visibleCells.length > 0) {
+        const dotSize = Math.max(1, safeCell - 1)
+        const innerGlowSize = Math.max(14, safeCell * 2.8)
+        const outerGlowSize = Math.max(28, safeCell * 5.5)
+
+        context.save()
+        context.globalCompositeOperation = 'lighter'
+        for (let i = 0; i < visibleCells.length; i += 3) {
+          const x = visibleCells[i]
+          const y = visibleCells[i + 1]
+          const alpha = visibleCells[i + 2]
+          const outerAlpha = Math.min(0.026, alpha * 0.018)
+          const innerAlpha = Math.min(0.08, alpha * 0.055)
+
+          context.fillStyle = `rgba(${accent[0]},${accent[1]},${accent[2]},${outerAlpha.toFixed(3)})`
+          context.fillRect(x - (outerGlowSize - dotSize) / 2, y - (outerGlowSize - dotSize) / 2, outerGlowSize, outerGlowSize)
+          context.fillStyle = `rgba(${accent[0]},${accent[1]},${accent[2]},${innerAlpha.toFixed(3)})`
+          context.fillRect(x - (innerGlowSize - dotSize) / 2, y - (innerGlowSize - dotSize) / 2, innerGlowSize, innerGlowSize)
+        }
+        context.restore()
+
+        for (let i = 0; i < visibleCells.length; i += 3) {
+          const x = visibleCells[i]
+          const y = visibleCells[i + 1]
+          const alpha = visibleCells[i + 2]
           context.fillStyle = `rgba(${accent[0]},${accent[1]},${accent[2]},${alpha.toFixed(3)})`
-          context.fillRect(col * safeCell, row * safeCell, safeCell - 1, safeCell - 1)
+          context.fillRect(x, y, dotSize, dotSize)
         }
       }
 
