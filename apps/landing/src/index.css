@@ -1,0 +1,13 @@
+@import '@freecodexyz/ui/styles.css';
+
+#root {
+  min-height: 100svh;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}

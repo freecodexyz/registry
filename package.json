@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "concurrently -n api,indexer,web -c blue,cyan,green \"pnpm --filter @freecodexyz/api dev:api\" \"pnpm --filter @freecodexyz/api dev:indexer\" \"pnpm --filter @freecodexyz/web dev\"",
+    "dev:landing": "pnpm --filter @freecodexyz/landing dev",
+    "build:landing": "pnpm --filter @freecodexyz/landing build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
