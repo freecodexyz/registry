@@ -13,8 +13,8 @@ export function FinalCtaSection() {
         </h3>
         <p className="final-cta__subheading">Tokenize your repo today.</p>
         <div className="final-cta__actions" aria-label="Final call to action">
-          <ButtonLink className="final-cta__button" href={appUrl}>Launch App</ButtonLink>
-          <ButtonLink className="final-cta__button" href={docsUrl}>Open Docs</ButtonLink>
+          <ButtonLink className="final-cta__button final-cta__button--secondary" variant="ghost" href={appUrl}>Launch App</ButtonLink>
+          <ButtonLink className="final-cta__button final-cta__button--secondary" variant="ghost" href={docsUrl}>Open Docs</ButtonLink>
         </div>
       </div>
     </section>

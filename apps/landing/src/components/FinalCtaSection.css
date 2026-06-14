@@ -82,6 +82,18 @@
   min-width: 140px;
 }
 
+.final-cta__button--secondary {
+  --_bg: color-mix(in oklab, var(--bg-soft) 82%, transparent);
+  --_fg: var(--fg);
+  --_bd: var(--rule-strong);
+  backdrop-filter: blur(8px);
+}
+
+.final-cta__button--secondary:hover {
+  --_bg: var(--bg-soft);
+  --_bd: var(--fg-dim);
+}
+
 @media (max-width: 560px) {
   .final-cta {
     min-height: 460px;
