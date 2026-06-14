@@ -6,7 +6,7 @@ import './FinalCtaSection.css'
 export function FinalCtaSection() {
   return (
     <section className="final-cta" aria-labelledby="final-cta-heading">
-      <PointCloud className="final-cta__point-cloud" shape="mobius" density={0.9} />
+      <PointCloud className="final-cta__point-cloud" shape="knot" density={0.9} />
       <div className="final-cta__content">
         <h3 className="final-cta__heading" id="final-cta-heading">
           Anyone can create, own, and control its own repos <span>RIK</span> through <span>$freecode</span>, our native protocol token.
