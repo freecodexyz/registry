@@ -1,0 +1,80 @@
+.protocol-card {
+  --protocol-card-rgb: 124, 224, 0;
+  --card-line: color-mix(in oklab, rgb(var(--protocol-card-rgb)) 78%, var(--rule));
+  --card-glow: rgba(var(--protocol-card-rgb), 0.28);
+  position: relative;
+  min-width: 0;
+  padding: var(--bw);
+  background: linear-gradient(180deg, var(--card-line), color-mix(in oklab, var(--card-line) 20%, transparent));
+  box-shadow: 0 30px 70px -48px var(--card-glow);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.protocol-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 34px 80px -42px var(--card-glow);
+}
+
+.protocol-card__inner {
+  position: relative;
+  height: clamp(280px, 24vw, 320px);
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--bg-soft) 34%, var(--ink)), var(--ink) 72%),
+    var(--ink);
+  color: var(--fg);
+}
+
+.protocol-card__matrix,
+.protocol-card__shade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.protocol-card__matrix {
+  display: block;
+  opacity: 0.82;
+}
+
+.protocol-card__shade {
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 24%, rgba(var(--protocol-card-rgb), 0.18), transparent 42%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.10), rgba(0, 0, 0, 0.74));
+}
+
+.protocol-card__icon {
+  position: absolute;
+  top: var(--space-5);
+  left: var(--space-5);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--fg);
+  background: color-mix(in oklab, var(--ink) 76%, transparent);
+  border: var(--bw) solid color-mix(in oklab, var(--fg) 18%, transparent);
+  pointer-events: none;
+}
+
+.protocol-card__label {
+  position: absolute;
+  left: var(--space-5);
+  right: var(--space-5);
+  bottom: var(--space-5);
+  margin: 0;
+  color: var(--fg);
+  font-size: var(--t-body-lg);
+  font-weight: var(--w-medium);
+  letter-spacing: -0.012em;
+  line-height: var(--lh-snug);
+  pointer-events: none;
+}
+
+@media (max-width: 560px) {
+  .protocol-card__inner {
+    height: 300px;
+  }
+}

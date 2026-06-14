@@ -1,0 +1,76 @@
+.protocol {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(var(--space-16), 10vw, var(--space-24)) clamp(var(--space-4), 5vw, var(--space-12));
+  border-top: var(--bw) solid var(--rule);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--bg-soft) 26%, transparent), transparent 32%),
+    var(--bg);
+}
+
+.protocol::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background-image: radial-gradient(color-mix(in oklab, var(--fg) 28%, transparent) 1px, transparent 1px);
+  background-size: 18px 18px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 18%, black 72%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, black 18%, black 72%, transparent);
+}
+
+.protocol__header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.protocol__eyebrow {
+  color: var(--fg-dim);
+}
+
+.protocol__heading {
+  max-width: 860px;
+  margin: var(--space-4) 0 0;
+  color: var(--fg);
+  font-size: clamp(42px, 5.4vw, 78px);
+  font-weight: var(--w-medium);
+  letter-spacing: -0.05em;
+  line-height: 0.94;
+}
+
+.protocol__cards {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 230px));
+  justify-content: center;
+  gap: clamp(var(--space-4), 2vw, var(--space-6));
+  margin-top: clamp(var(--space-10), 7vw, var(--space-16));
+}
+
+@media (max-width: 1080px) {
+  .protocol__cards {
+    grid-template-columns: repeat(2, minmax(0, 230px));
+  }
+}
+
+@media (max-width: 560px) {
+  .protocol {
+    padding-block: var(--space-16);
+  }
+
+  .protocol__heading {
+    font-size: clamp(36px, 11vw, 54px);
+    letter-spacing: -0.045em;
+  }
+
+  .protocol__cards {
+    grid-template-columns: minmax(0, 100%);
+  }
+
+}
