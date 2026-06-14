@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { Eyebrow } from '@freecodexyz/ui'
 import { ProtocolCard } from './ProtocolCard'
 import './ProtocolSection.css'
 
