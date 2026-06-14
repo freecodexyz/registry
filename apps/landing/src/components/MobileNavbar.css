@@ -1,0 +1,62 @@
+.mobile-navbar {
+  position: relative;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--bw) solid var(--rule);
+  background: color-mix(in oklab, var(--bg) 88%, transparent);
+}
+
+.mobile-navbar__brand {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.mobile-navbar__logo {
+  display: block;
+  width: 32px;
+  height: 32px;
+}
+
+.mobile-navbar__toggle {
+  flex: 0 0 auto;
+}
+
+.mobile-navbar__toggle svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.mobile-navbar__menu {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  right: 0;
+  width: 100%;
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-bottom: var(--bw) solid var(--rule);
+  background: var(--bg);
+  box-shadow: var(--shadow-pop);
+}
+
+.mobile-navbar__menu-link {
+  width: 100%;
+  min-height: var(--control-h);
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.mobile-navbar__target-external {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  fill: currentColor;
+}
