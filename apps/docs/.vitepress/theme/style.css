@@ -1,0 +1,402 @@
+:root {
+  --vp-font-family-base: var(--sans);
+  --vp-font-family-mono: var(--mono);
+  --vp-layout-max-width: var(--maxw);
+  --vp-sidebar-width: 252px;
+  --vp-nav-height: 58px;
+
+  --vp-c-bg: var(--bg);
+  --vp-c-bg-alt: var(--bg);
+  --vp-c-bg-elv: var(--bg-soft);
+  --vp-c-bg-soft: var(--bg-soft);
+  --vp-c-text-1: var(--fg);
+  --vp-c-text-2: var(--fg-dim);
+  --vp-c-text-3: var(--fg-dim);
+  --vp-c-divider: var(--rule);
+  --vp-c-gutter: var(--rule);
+
+  --vp-c-brand-1: var(--accent-deep);
+  --vp-c-brand-2: var(--accent);
+  --vp-c-brand-3: var(--accent);
+  --vp-c-brand-soft: var(--accent-soft);
+
+  --vp-code-color: var(--fg);
+  --vp-code-bg: var(--bg-soft);
+  --vp-code-block-bg: var(--ink);
+  --vp-code-line-highlight-color: color-mix(in oklab, var(--accent) 18%, transparent);
+  --vp-code-line-number-color: color-mix(in oklab, var(--bg) 58%, transparent);
+}
+
+html {
+  background: var(--bg);
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+body {
+  min-width: 320px;
+}
+
+a {
+  color: inherit;
+}
+
+.fcf-docs-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, color-mix(in oklab, var(--rule) 42%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--rule) 34%, transparent) 1px, transparent 1px),
+    radial-gradient(circle at 78% 12%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 34%);
+  background-size: 48px 48px, 48px 48px, 100% 100%;
+  mask-image: linear-gradient(to bottom, black, transparent 72%);
+}
+
+.VPNav {
+  border-bottom: var(--bw) solid var(--rule);
+  background: color-mix(in oklab, var(--bg) 92%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.VPNavBar,
+.VPNavBar.has-sidebar .content,
+.VPNavBar.has-sidebar .curtain,
+.VPNavBar:not(.has-sidebar) .content {
+  border-bottom: 0 !important;
+  background: transparent !important;
+}
+
+.VPNavBarTitle .title {
+  gap: var(--space-3);
+  border-bottom: 0;
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: var(--t-sm);
+  font-weight: var(--w-semibold);
+  letter-spacing: var(--ls-tight);
+}
+
+.fcf-docs-logo {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.VPNavBarMenuLink {
+  color: var(--fg-dim);
+  font-family: var(--sans);
+  font-size: var(--t-sm);
+  font-weight: var(--w-medium);
+}
+
+.VPNavScreenMenuLink,
+.VPNavScreenMenuGroup .text {
+  color: var(--fg-dim);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  font-weight: var(--w-medium);
+  letter-spacing: var(--ls-mono);
+  text-transform: uppercase;
+}
+
+.VPNavBarMenuLink {
+  position: relative;
+}
+
+.VPNavBarMenuLink::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  bottom: 15px;
+  left: 12px;
+  height: 1px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.VPNavBarMenuLink:hover,
+.VPNavBarMenuLink.active,
+.VPNavScreenMenuLink:hover,
+.VPNavScreenMenuLink.active {
+  color: var(--fg);
+}
+
+.VPNavBarMenuLink:hover::after,
+.VPNavBarMenuLink.active::after {
+  opacity: 1;
+}
+
+.VPNavBarSocialLinks,
+.VPNavBarExtra,
+.VPNavBarAppearance {
+  color: var(--fg-dim);
+}
+
+.VPNavBarSearchButton {
+  height: var(--control-h-sm);
+  border: var(--bw) solid var(--rule) !important;
+  border-radius: var(--r-0) !important;
+  background: transparent !important;
+  color: var(--fg-dim) !important;
+}
+
+.VPNavBarSearchButton:hover {
+  border-color: var(--fg) !important;
+  color: var(--fg) !important;
+}
+
+.fcf-docs-mobile-kicker,
+.fcf-docs-sidebar-kicker {
+  color: var(--fg-dim);
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  font-weight: var(--w-medium);
+  letter-spacing: var(--ls-tight);
+  text-transform: uppercase;
+}
+
+.fcf-docs-mobile-kicker {
+  padding: var(--space-4) var(--space-8) var(--space-2);
+}
+
+.fcf-docs-sidebar-kicker {
+  padding: var(--space-4) var(--space-2) var(--space-5);
+}
+
+.VPSidebar {
+  border-right: var(--bw) solid var(--rule);
+  background: var(--bg) !important;
+  font-family: var(--sans);
+}
+
+.VPSidebar .nav {
+  padding-top: var(--space-6);
+}
+
+.VPSidebar .curtain {
+  display: none;
+}
+
+.VPSidebarItem .item {
+  min-height: 34px;
+}
+
+.VPSidebarItem .text,
+.VPDocAsideOutline .outline-title,
+.VPDocAsideOutline .outline-link {
+  color: var(--fg-dim);
+  font-family: var(--sans);
+  font-size: var(--t-sm);
+  font-weight: var(--w-medium);
+  letter-spacing: var(--ls-tight);
+  line-height: 1.45;
+}
+
+.VPSidebarItem .items {
+  padding-top: var(--space-2);
+}
+
+.VPSidebarItem.is-active > .item .text,
+.VPSidebarItem .link:hover .text,
+.VPDocAsideOutline .outline-link:hover,
+.VPDocAsideOutline .outline-link.active {
+  color: var(--fg);
+}
+
+.VPDocAsideOutline .content {
+  border-left: var(--bw) solid var(--rule);
+  font-family: var(--sans);
+}
+
+.VPDocAsideOutline .outline-title {
+  margin-bottom: var(--space-3);
+  color: var(--fg);
+}
+
+.VPDocAsideOutline .root {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.VPDocAsideOutline .outline-link {
+  display: block;
+  padding: var(--space-1) 0;
+}
+
+.VPDocAsideOutline .outline-marker {
+  width: 1px;
+  background: var(--accent);
+}
+
+.VPDoc {
+  padding-top: var(--space-8);
+}
+
+.VPDoc.has-aside .content-container {
+  max-width: var(--maxw-prose);
+}
+
+.vp-doc {
+  color: var(--fg);
+}
+
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3,
+.vp-doc h4 {
+  color: var(--fg);
+  font-weight: var(--w-medium);
+  letter-spacing: var(--ls-tight);
+}
+
+.vp-doc h1 {
+  padding-bottom: var(--space-5);
+  border-bottom: var(--bw) solid var(--rule);
+  font-size: clamp(38px, 7vw, var(--t-h1));
+  line-height: var(--lh-snug);
+}
+
+.vp-doc h2 {
+  margin-top: var(--space-16);
+  padding-top: var(--space-6);
+  border-top: var(--bw) solid var(--rule);
+  border-bottom: 0;
+  font-size: var(--t-h3);
+}
+
+.vp-doc h3 {
+  margin-top: var(--space-10);
+  font-size: var(--t-h4);
+}
+
+.vp-doc p,
+.vp-doc li {
+  color: var(--fg-dim);
+  line-height: var(--lh-relaxed);
+}
+
+.vp-doc strong {
+  color: var(--fg);
+}
+
+.vp-doc a {
+  color: var(--fg);
+  font-weight: var(--w-medium);
+  text-decoration: none;
+  border-bottom: var(--bw) solid var(--accent);
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.vp-doc a:hover {
+  color: var(--accent-deep);
+  border-color: var(--accent-deep);
+}
+
+.vp-doc hr {
+  height: 1px;
+  border: 0;
+  background: var(--rule);
+}
+
+.vp-doc blockquote {
+  margin: var(--space-6) 0;
+  padding: var(--space-4) var(--space-5);
+  border-left: var(--bw-2) solid var(--accent);
+  background: var(--bg-soft);
+  color: var(--fg);
+}
+
+.vp-doc blockquote > p {
+  color: var(--fg);
+}
+
+.vp-doc :not(pre) > code {
+  padding: 3px 7px;
+  border: var(--bw) solid var(--rule);
+  border-radius: var(--r-0);
+  background: var(--bg-soft);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 0.86em;
+}
+
+.vp-doc div[class*='language-'] {
+  border: var(--bw) solid var(--rule);
+  border-radius: var(--r-0);
+  background: var(--vp-code-block-bg);
+  box-shadow: none;
+}
+
+.vp-doc div[class*='language-'] code {
+  font-family: var(--mono);
+  font-size: var(--t-mono);
+}
+
+.vp-doc table {
+  display: table;
+  width: 100%;
+  font-size: var(--t-sm);
+}
+
+.vp-doc tr {
+  border-top: var(--bw) solid var(--rule);
+}
+
+.vp-doc th,
+.vp-doc td {
+  border: var(--bw) solid var(--rule);
+  padding: 9px 11px;
+}
+
+.vp-doc th {
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  font-weight: var(--w-semibold);
+  letter-spacing: var(--ls-mono);
+  text-transform: uppercase;
+}
+
+.vp-doc td {
+  color: var(--fg-dim);
+}
+
+.VPDocFooter {
+  border-top: var(--bw) solid var(--rule);
+}
+
+.VPDocFooter .prev-next {
+  gap: var(--space-3);
+}
+
+.VPDocFooter .pager-link {
+  border: var(--bw) solid var(--rule);
+  border-radius: var(--r-0);
+}
+
+.VPDocFooter .pager-link:hover {
+  border-color: var(--fg);
+}
+
+.VPDocFooter .desc {
+  color: var(--fg-dim);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-mono);
+  text-transform: uppercase;
+}
+
+.VPDocFooter .title {
+  color: var(--fg);
+}
+
+@media (max-width: 959px) {
+  .VPSidebar {
+    border-right: 0;
+  }
+}

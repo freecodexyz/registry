@@ -1,19 +1,21 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  title: 'FreeCodeFund Docs',
+  title: 'FCF Docs',
   description: 'Documentation for FreeCodeFund.',
   outDir: 'dist',
   cleanUrls: true,
   themeConfig: {
     nav: [
+      { text: 'About', link: '/' },
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'App', link: 'https://app.freecodefund.xyz' },
     ],
     sidebar: [
       {
-        text: 'Guide',
+        text: 'Docs',
         items: [
+          { text: 'About', link: '/' },
           { text: 'Getting Started', link: '/guide/getting-started' },
         ],
       },
