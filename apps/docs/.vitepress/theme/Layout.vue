@@ -1,27 +1,32 @@
 <script setup lang="ts">
-import { useData } from 'vitepress'
 import DefaultTheme from 'vitepress/theme-without-fonts'
-import { onMounted, watch } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
+import fcfLogoUrl from '../../../web/src/assets/fcf-logo.svg?url'
 
 const { Layout } = DefaultTheme
-const { isDark } = useData()
-const fcfLogoUrl = new URL('../../../web/src/assets/fcf-logo.svg', import.meta.url).href
+let themeObserver: MutationObserver | undefined
 
 onMounted(() => {
   const root = document.documentElement
 
-  const applyTheme = (dark: boolean) => {
+  const syncTheme = () => {
     root.dataset.accent = 'emerald'
 
-    if (dark) {
+    if (root.classList.contains('dark')) {
       root.dataset.theme = 'dark'
     } else {
       delete root.dataset.theme
     }
   }
 
-  applyTheme(isDark.value)
-  watch(isDark, (dark) => applyTheme(dark), { immediate: true })
+  syncTheme()
+  themeObserver = new MutationObserver(syncTheme)
+  themeObserver.observe(root, { attributes: true, attributeFilter: ['class'] })
+})
+
+onUnmounted(() => {
+  themeObserver?.disconnect()
+  themeObserver = undefined
 })
 </script>
 
