@@ -6,5 +6,7 @@ node_modules
 **/.tmp
 data
 apps/api/data
+apps/landing
+apps/docs
 terraform
 *.log
