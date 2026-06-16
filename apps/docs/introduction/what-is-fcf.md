@@ -31,7 +31,7 @@ That is what **RIK** solves. Without it, every step that comes after is built on
 
 | Layer | Status |
 | --- | --- |
-| RIK protocol V0 (Sepolia) | Live |
+| RIK protocol V0 (Base Sepolia) | Live |
 | `@freecodexyz/cli` (`fcf`) | Published as alpha on npm |
 | Registry public app | In active development, public beta soon |
 | Registry indexer & API | In active development |

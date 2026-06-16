@@ -63,7 +63,7 @@ If neither is present, the command exits with an error.
 ## Security notes
 
 - Treat the local wallet as if it were any other private key on your machine. Back it up before you delete it.
-- The Sepolia testnet is currently the only network the protocol runs on; Sepolia ETH is not real money, but treating it as throw-away is still the safest habit while alpha.
+- Base Sepolia is currently the only network the protocol runs on; Base Sepolia ETH is not real money, but treating it as throw-away is still the safest habit while alpha.
 - For CI use, `fcf wallet link` is sufficient. The secret is written through GitHub's encrypted secrets API and is not retrievable in plaintext after writing.
 
 ## Continue

@@ -7,7 +7,7 @@ fcf registry platform monorepo.
 - Start the platform for local development:
 
 ```shell
-CONTRACT_ADDRESS="0xf696da98df236a36536e9385dAf05D196579612B" pnpm dev
+CONTRACT_ADDRESS="0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac" RPC_URL="https://base-sepolia-rpc.publicnode.com" CHAIN_ID=84532 pnpm dev
 ```
 
 - Manage dependencies:

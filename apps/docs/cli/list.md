@@ -39,7 +39,7 @@ repo=903456789 ownerId=78901  registrant=0x123...456 at=1717512033
 
 | Variable | Description |
 | --- | --- |
-| `RPC_URL` | RPC endpoint. Defaults to `https://ethereum-sepolia-rpc.publicnode.com`. |
+| `RPC_URL` | RPC endpoint. Defaults to `https://base-sepolia-rpc.publicnode.com`. |
 
 This command only reads the chain; it does not need `PRIVATE_KEY` and will not send any transactions.
 

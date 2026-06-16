@@ -2,7 +2,7 @@ import fastify from "fastify";
 import { exit } from "node:process";
 import cors from "@fastify/cors";
 import { createPublicClient, http, isAddress, parseAbiItem, erc20Abi } from "viem";
-import { sepolia } from "viem/chains";
+import { baseSepolia } from "viem/chains";
 import { httpErrors } from "@fastify/sensible";
 import { generateNonce, SiweMessage } from "siwe";
 import secureSession from "@fastify/secure-session";
@@ -15,8 +15,8 @@ import rateLimit from "@fastify/rate-limit";
 
 const APP_NAME                      = "registry-api";
 const RIK_ADDRESS                   = process.env.CONTRACT_ADDRESS as `0x${string}`;
-const RPC_URL                       = (!process.env.RPC_URL || process.env.RPC_URL === "") ? "https://ethereum-sepolia-rpc.publicnode.com" : process.env.RPC_URL;
-const DEFAULT_LIST_BLOCK_RANGE      = 50_000n;
+const RPC_URL                       = (!process.env.RPC_URL || process.env.RPC_URL === "") ? "https://base-sepolia-rpc.publicnode.com" : process.env.RPC_URL;
+const DEFAULT_LIST_BLOCK_RANGE      = 2000n;
 const ALLOWED_ORIGINS               = ["http://localhost:5173"];
 const SIWE_DOMAIN                   = (!process.env.SIWE_DOMAIN || process.env.SIWE_DOMAIN === "") ? "localhost:5173" : process.env.SIWE_DOMAIN;
 const SESSION_KEY                   = (!process.env.SESSION_KEY || process.env.SESSION_KEY === "") ? randomBytes(32) : process.env.SESSION_KEY;
@@ -29,7 +29,7 @@ const EVENT_CACHE_TTL_MS            = 10_000;
 const DEFAULT_PAGE_SIZE             = 50;
 const MAX_PAGE_SIZE                 = 200;
 const SHOULD_RUN_INDEXER            = process.env.INDEXER === "1" || process.env.INDEXER?.toLowerCase() === "true";
-const CHAIN_ID                      = sepolia.id;
+const CHAIN_ID                      = baseSepolia.id;
 
 // server can't start with these
 if (!RIK_ADDRESS) die(new Error("RIK contract address is missing"));
@@ -41,7 +41,7 @@ if (!GITHUB_TOKEN) die(new Error("github token is missing"));
 const nonces = new Map<string, string>();
 
 const client = createPublicClient({
-    chain: sepolia,
+    chain: baseSepolia,
     transport: http(RPC_URL),
 });
 
@@ -141,12 +141,12 @@ app.get("/api/repos", async (req, reply) => {
     } catch (err) {
         // Once SQLite is primed, availability is better than failing the page because
         // the RPC endpoint had a transient outage. The next successful request repairs it.
-        if ((listRepos.all() as RepoRow[]).length === 0) throw err;
+        if ((listRepos.all(CHAIN_ID) as RepoRow[]).length === 0) throw err;
         app.log.warn({ err }, "failed to refresh repo events; serving sqlite cache");
     }
 
-    const where: string[] = [];
-    const params: any[] = [];
+    const where: string[] = ["r.chain_id = ?"];
+    const params: any[] = [CHAIN_ID];
 
     if (q) {
         const like = `%${q}%`;
@@ -157,7 +157,7 @@ app.get("/api/repos", async (req, reply) => {
         params.push(like, like, like, like, like, like, like);
     }
 
-    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+    const whereSql = `WHERE ${where.join(" AND ")}`;
     const rows = db.prepare(`
         SELECT r.repo_id, r.registrant, r.github_owner_id, r.registered_at, r.block_number, r.transaction_hash, r.chain_id,
                m.full_name, m.description, m.language, m.stars, m.html_url, m.owner_name
@@ -296,9 +296,9 @@ app.get("/api/repos/stream", async (req, reply) => {
                     m.full_name, m.description, m.language, m.stars, m.html_url, m.owner_name
              FROM repos r
              LEFT JOIN github_meta m ON m.repo_id = r.repo_id
-             WHERE r.block_number > ?
-             ORDER BY r.block_number`
-        ).all(Number(lastId)) as RepoWithMetaRow[];
+              WHERE r.chain_id = ? AND r.block_number > ?
+              ORDER BY r.block_number`
+        ).all(CHAIN_ID, Number(lastId)) as RepoWithMetaRow[];
         
         for (const row of rows) {
             const payload = repoPayloadFromRow(row);

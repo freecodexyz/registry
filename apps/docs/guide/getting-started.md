@@ -13,8 +13,8 @@ You need:
 
 - **Node.js 20+** (Node 24 in CI is the reference).
 - **A GitHub repository you own** and can push to.
-- **A Sepolia RPC URL** from any provider (Alchemy, Infura, public node, etc).
-- **A small amount of Sepolia ETH** to fund the wallet that will mint your RIK. Faucets such as the [Google Cloud Sepolia faucet](https://cloud.google.com/application/web3/faucet/ethereum/sepolia) work.
+- **A Base Sepolia RPC URL** from any provider (Alchemy, Infura, public node, etc).
+- **A small amount of Base Sepolia ETH** to fund the wallet that will mint your RIK.
 
 You do not need:
 
@@ -40,12 +40,12 @@ For other install options and version pinning, see [CLI → Install](/cli/instal
 End-to-end, the minting flow looks like this:
 
 1. From the repository you want to register, create a local FCF wallet and link its private key as a GitHub Actions secret.
-2. Set two GitHub Actions repository variables: the RIK contract address and your Sepolia RPC URL.
+2. Set two GitHub Actions repository variables: the RIK contract address and your Base Sepolia RPC URL.
 3. Run `fcf init` to scaffold the registration workflow.
-4. Fund the wallet with Sepolia ETH.
+4. Fund the wallet with Base Sepolia ETH.
 5. Commit and push the workflow file, then dispatch the `Register Repository` GitHub Action from the GitHub UI.
 
-The workflow asks GitHub for an OIDC token, calls `fcf register` against the RIK contract, and mints your RIK on Sepolia.
+The workflow asks GitHub for an OIDC token, calls `fcf register` against the RIK contract, and mints your RIK on Base Sepolia.
 
 The full walkthrough with commands is in [Mint Your RIK](/guide/mint-a-rik).
 

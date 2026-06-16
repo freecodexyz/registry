@@ -6,7 +6,7 @@ description: Threat model, current security posture, and future audit notes for 
 # Security
 
 ::: warning Alpha software
-The RIK protocol is in alpha on Sepolia. It has not been audited by a third party. Treat it as experimental until further notice. 
+The RIK protocol is in alpha on Base Sepolia. It has not been audited by a third party. Treat it as experimental until further notice.
 :::
 
 ## Trust assumptions

@@ -50,6 +50,6 @@ We do not implement governance, upgradeability, fee mechanics, or staking inside
 | `contracts/src/RIK.sol` | The ERC-721 + JWT verification. |
 | `contracts/src/JsonClaim.sol` | Byte-search claim library. |
 | `contracts/script/Deploy.s.sol` | Foundry deploy script. |
-| `contracts/deploy-sepolia.sh` | Wrapper for Sepolia deployment. |
+| `contracts/deploy-sepolia.sh` | Wrapper for testnet deployment. |
 | `contracts/test/RIK.t.sol` | Foundry tests. |
 | `contracts/test/fixtures/load-fixture.mjs` | `vm.ffi` helper that generates RSA/JWT fixtures for the Solidity tests. |

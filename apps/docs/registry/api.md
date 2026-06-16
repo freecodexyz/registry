@@ -11,7 +11,7 @@ Source: `apps/api/` in [`freecodexyz/registry`](https://github.com/freecodexyz/r
 
 ## The indexer
 
-The indexer is a polling loop. On each tick (every ~12 seconds, matching Sepolia block time) it:
+The indexer is a polling loop. On each tick (every ~12 seconds) it:
 
 1. Reads `last_block` from the `indexer_state` table.
 2. Asks the RPC for the current head block.
@@ -27,7 +27,7 @@ Tunables and behavior:
 | --- | --- | --- |
 | Poll interval | 12 seconds | hardcoded |
 | Initial backfill range | last 50,000 blocks | hardcoded `DEFAULT_LIST_BLOCK_RANGE` |
-| Chain | Sepolia | hardcoded; matches the deployed contract |
+| Chain | Base Sepolia | hardcoded; matches the deployed contract |
 
 ### Caches
 
@@ -69,7 +69,8 @@ SQLite (better-sqlite3). Tables:
 | Variable | Required | Description |
 | --- | --- | --- |
 | `CONTRACT_ADDRESS` | yes | The RIK contract address to index. |
-| `RPC_URL` | no | RPC endpoint. Defaults to `https://ethereum-sepolia-rpc.publicnode.com`. |
+| `RPC_URL` | no | RPC endpoint. Defaults to `https://base-sepolia-rpc.publicnode.com`. |
+| `CHAIN_ID` | no | SQLite default chain ID. Defaults to `84532`. |
 | `INDEXER` | no | Set to `1` or `true` to run the indexer loop alongside the server. |
 | `GITHUB_TOKEN` | yes | Used for GitHub REST API enrichment. |
 | `SIWE_DOMAIN` | no | The domain used in SIWE messages. Defaults to `localhost:5173`. |
@@ -81,7 +82,7 @@ SQLite (better-sqlite3). Tables:
 ## Running locally
 
 ```bash
-CONTRACT_ADDRESS="0xf696da98df236a36536e9385dAf05D196579612B" pnpm dev
+CONTRACT_ADDRESS="0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac" RPC_URL="https://base-sepolia-rpc.publicnode.com" CHAIN_ID=84532 pnpm dev
 ```
 
 This runs both the API and the indexer (and the web app). To run just the API:

@@ -98,7 +98,7 @@ You're asking the contract for a `tokenId` that has never been minted. Mint it f
 You're running the Registry API server without `CONTRACT_ADDRESS` set in the environment. Set it:
 
 ```bash
-CONTRACT_ADDRESS=0xf696da98df236a36536e9385dAf05D196579612B pnpm dev
+CONTRACT_ADDRESS=0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac RPC_URL=https://base-sepolia-rpc.publicnode.com CHAIN_ID=84532 pnpm dev
 ```
 
 ## Need more help?

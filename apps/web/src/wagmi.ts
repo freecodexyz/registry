@@ -1,9 +1,9 @@
 import { createConfig, http } from "wagmi";
-import { sepolia } from "wagmi/chains";
+import { baseSepolia } from "wagmi/chains";
 import { injected } from "wagmi/connectors";
 
 export const wagmiConfig = createConfig({
-    chains: [sepolia],
+    chains: [baseSepolia],
     connectors: [injected()],
-    transports: { [sepolia.id]: http() },
+    transports: { [baseSepolia.id]: http("https://base-sepolia-rpc.publicnode.com") },
 });

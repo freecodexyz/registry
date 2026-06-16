@@ -40,7 +40,7 @@ fcf register --contract <addr> [--oidc-token <token>]
 | --- | --- | --- |
 | `PRIVATE_KEY` | one of these | Hex private key for the signing wallet. |
 | Local wallet at `~/.config/fcf/wallet.json` | one of these | Created by `fcf wallet create`. Used when `PRIVATE_KEY` is unset. |
-| `RPC_URL` | no | RPC endpoint. Defaults to `https://ethereum-sepolia-rpc.publicnode.com`. Sepolia is auto-detected from the URL; otherwise the CLI uses the `foundry` (local anvil) chain. |
+| `RPC_URL` | no | RPC endpoint. Defaults to `https://base-sepolia-rpc.publicnode.com`. Base Sepolia is auto-detected from the URL; otherwise the CLI uses the `foundry` (local anvil) chain. |
 | `ACTIONS_ID_TOKEN_REQUEST_URL` | yes (unless `--oidc-token`) | Set automatically inside GitHub Actions runners with `id-token: write`. |
 | `ACTIONS_ID_TOKEN_REQUEST_TOKEN` | yes (unless `--oidc-token`) | Same as above. |
 
@@ -71,7 +71,7 @@ You can call `fcf register` outside of Actions if you have a valid OIDC token fr
 ```bash
 PRIVATE_KEY=0x... RPC_URL=https://... \
   fcf register \
-    --contract 0xf696da98df236a36536e9385dAf05D196579612B \
+    --contract 0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac \
     --oidc-token <jwt>
 ```
 

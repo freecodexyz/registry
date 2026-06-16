@@ -40,7 +40,7 @@ fcf keys sync --contract <addr>
 | Variable | Description |
 | --- | --- |
 | `PRIVATE_KEY` | The deployer's private key. Must match the contract's `owner()`. |
-| `RPC_URL` | RPC endpoint. Defaults to `https://ethereum-sepolia-rpc.publicnode.com`. |
+| `RPC_URL` | RPC endpoint. Defaults to `https://base-sepolia-rpc.publicnode.com`. |
 
 ## When to run it
 

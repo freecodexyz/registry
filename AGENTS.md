@@ -33,7 +33,7 @@ Guidance for AI coding agents working in this repository. See
 - Optional API/indexer environment: `GATE_TOKEN_MIN_BALANCE`, `RPC_URL`,
   `SIWE_DOMAIN`, `SESSION_KEY`, `SESSION_COOKIE_SECURE`, `ALLOWED_ORIGINS`,
   `DB_PATH`, and `CHAIN_ID`.
-- `RPC_URL` defaults to public Sepolia RPC. `SIWE_DOMAIN` defaults to
+- `RPC_URL` defaults to public Base Sepolia RPC. `SIWE_DOMAIN` defaults to
   `localhost:5173`. `SESSION_KEY` defaults to a random process-local key, which
   invalidates sessions on restart.
 - `ALLOWED_ORIGINS`, when set, must be a JSON array of strings, not a
@@ -85,7 +85,7 @@ deployment or infrastructure change.
 - `apps/api/src/index.ts`: API entrypoint, env validation, CORS, SIWE auth,
   `$FREECODE` gate checks, repo list endpoint, SSE stream, and exported Viem
   objects consumed by the indexer.
-- `apps/api/src/indexer.ts`: Sepolia `RepoRegistered` poller, SQLite upserts,
+- `apps/api/src/indexer.ts`: Base Sepolia `RepoRegistered` poller, SQLite upserts,
   GitHub enrichment, and in-process event emission.
 - `apps/api/src/db.ts`: SQLite schema, lightweight migrations, prepared
   statements, and default `DB_PATH` handling.
@@ -96,7 +96,7 @@ deployment or infrastructure change.
 - `apps/api/Dockerfile`: Node 24 API/indexer image. Runtime chooses API versus
   indexer from `INDEXER`.
 - `apps/web/`: gated React Registry app package `@freecodexyz/web`.
-- `apps/web/src/wagmi.ts`: Sepolia-only Wagmi config with injected wallet
+- `apps/web/src/wagmi.ts`: Base Sepolia-only Wagmi config with injected wallet
   connector.
 - `apps/web/src/AuthSessionProvider.tsx` and `apps/web/src/useSignIn.ts`:
   wallet session and SIWE sign-in flow.
@@ -117,7 +117,7 @@ deployment or infrastructure change.
 ## Architecture Boundaries
 
 - The registry source of truth is the RIK contract `RepoRegistered` event on
-  Sepolia. GitHub metadata is enrichment and must remain non-consensus.
+  Base Sepolia. GitHub metadata is enrichment and must remain non-consensus.
 - Preserve the API/indexer coupling around `INDEXER`. `apps/api/src/index.ts`
   must not start the HTTP server when `INDEXER=true`, because the indexer
   imports shared exports from that module.
@@ -125,7 +125,7 @@ deployment or infrastructure change.
   requirements for both API and indexer paths. Keep failures explicit through
   `die()` or similarly clear startup errors.
 - `CHAIN_ID` only controls the SQLite default. Runtime chain behavior is
-  Sepolia via `viem/chains` unless the code is intentionally changed.
+  Base Sepolia via `viem/chains` unless the code is intentionally changed.
 - Keep nonce storage normalized by lowercase address and single-use for SIWE.
 - Keep SIWE domain checks aligned with the web origin. Local default is
   `localhost:5173`; Terraform derives `SIWE_DOMAIN` from the deployed public
@@ -147,7 +147,7 @@ deployment or infrastructure change.
   must stay off for `/api/` so SSE updates are not buffered.
 - The web app talks to the API through relative `/api` paths. Vite proxies to
   `localhost:3000`; Nginx proxies to the `api` Docker Compose service.
-- The web app currently supports Sepolia and injected wallets only. Do not add
+- The web app currently supports Base Sepolia and injected wallets only. Do not add
   wallet connectors, chains, or production RPC defaults without user approval.
 - `apps/landing/src/components/navbarLinks.ts` imports the logo from the web
   app assets. If moving assets, update both apps deliberately.

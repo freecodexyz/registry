@@ -2,8 +2,9 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-const configuredChainId = Number(process.env.CHAIN_ID ?? 11155111);
-const DEFAULT_CHAIN_ID = Number.isFinite(configuredChainId) ? configuredChainId : 11155111;
+const BASE_SEPOLIA_CHAIN_ID = 84532;
+const configuredChainId = Number(process.env.CHAIN_ID ?? BASE_SEPOLIA_CHAIN_ID);
+const DEFAULT_CHAIN_ID = Number.isFinite(configuredChainId) && configuredChainId > 0 ? configuredChainId : BASE_SEPOLIA_CHAIN_ID;
 
 function initDbPath(dbPath: string): string {
   mkdirSync(dirname(dbPath), { recursive: true }); return dbPath;
@@ -80,6 +81,7 @@ ON CONFLICT(repo_id) DO UPDATE SET
 export const listRepos = db.prepare(`
 SELECT repo_id, registrant, github_owner_id, registered_at, block_number, transaction_hash, chain_id
 FROM repos
+WHERE chain_id = ?
 ORDER BY registered_at DESC
 `);
 

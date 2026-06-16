@@ -3,21 +3,22 @@ import { client, RIK_ADDRESS, RepoRegisteredEvent, DEFAULT_LIST_BLOCK_RANGE, CHA
 import { fetchOwnerUsername, fetchRepoMetaData, getGhClient } from "./github";
 import { registryEvents } from "./events";
 
-const POLL_MS   = 12_000; // one Sepolia block time
+const POLL_MS   = 12_000;
 const SHOULD_RUN_INDEXER = process.env.INDEXER === "1" || process.env.INDEXER?.toLowerCase() === "true";
+const INDEXER_STATE_KEY = `last_block:${CHAIN_ID}:${RIK_ADDRESS.toLowerCase()}`;
 
 const gh = getGhClient();
 
 async function getLastIndexedBlock(): Promise<bigint> {
-    const row = db.prepare("SELECT value FROM indexer_state WHERE key='last_block'").get() as { value: string } | undefined;
+    const row = db.prepare("SELECT value FROM indexer_state WHERE key=?").get(INDEXER_STATE_KEY) as { value: string } | undefined;
     return row ? BigInt(row.value) : (await client.getBlockNumber()) - DEFAULT_LIST_BLOCK_RANGE;
 }
 
 function setLastIndexedBlock(n: bigint) {
     db.prepare(
-        "INSERT INTO indexer_state (key, value) VALUES ('last_block', ?) " +
+        "INSERT INTO indexer_state (key, value) VALUES (?, ?) " +
         "ON CONFLICT(key) DO UPDATE SET value=excluded.value"
-    ).run(String(n));
+    ).run(INDEXER_STATE_KEY, String(n));
 }
 
 export async function tick() {

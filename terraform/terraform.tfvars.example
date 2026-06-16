@@ -1,11 +1,12 @@
 aws_region = "us-east-1"
 
 app_env = {
-  CONTRACT_ADDRESS       = "0x..."
+  CONTRACT_ADDRESS       = "0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac"
+  CHAIN_ID               = "84532"
   GATE_TOKEN_ADDRESS    = "0x..."
   GATE_TOKEN_MIN_BALANCE = "1"
   GITHUB_TOKEN           = "ghp_..."
-  RPC_URL                = "https://..."
+  RPC_URL                = "https://base-sepolia-rpc.publicnode.com"
   SESSION_KEY            = "replace-with-a-long-random-string"
   SESSION_COOKIE_SECURE  = "false"
 }

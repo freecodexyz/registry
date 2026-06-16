@@ -27,14 +27,14 @@ Yes, it's called [$freecode](https://dexscreener.com/base/0x67a7ca081dc79b45fd1f
 
 | Component | Status |
 | --- | --- |
-| RIK contract (V0 live on Sepolia) | Live |
+| RIK contract (V0 live on Base Sepolia) | Live |
 | `@freecodexyz/cli` (`fcf`) | Alpha on npm |
 | Public Registry web app | In active development |
 | Indexer & API | In active development |
 
 ## Which network?
 
-Sepolia testnet today. First Mainnet will be Base chain.
+Base Sepolia testnet today. First Mainnet will be Base chain.
 
 ## How do I mint a RIK?
 

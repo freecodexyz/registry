@@ -10,7 +10,7 @@ Once a RIK is minted, it shows up in two places: the **Registry web app** and th
 ## The Registry web app
 
 ::: info In active development
-The Registry is being built. Some features below are present in development; the public beta will land on Sepolia first.
+The Registry is being built. Some features below are present in development; the public beta will land on Base Sepolia first.
 :::
 
 The Registry web app lives at [`app.freecodefund.xyz`](https://app.freecodefund.xyz). It is the public, browsable view of every RIK that has been minted on the protocol.
@@ -31,7 +31,7 @@ For the system breakdown of how the app is composed, see [Registry → Web App](
 You can also list registrations directly from the chain without the web app:
 
 ```bash
-fcf list --contract 0xf696da98df236a36536e9385dAf05D196579612B
+fcf list --contract 0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac
 ```
 
 By default the CLI scans the last ~50,000 blocks for `RepoRegistered` events. To start from a specific block:

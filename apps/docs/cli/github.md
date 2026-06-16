@@ -68,8 +68,8 @@ Prints the variable's metadata and value.
 ### `fcf github vars set <var_name> <value>`
 
 ```bash
-fcf github vars set FCF_CONTRACT 0xf696da98df236a36536e9385dAf05D196579612B
-fcf github vars set FCF_RPC_URL  https://your-sepolia-rpc
+fcf github vars set FCF_CONTRACT 0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac
+fcf github vars set FCF_RPC_URL  https://your-base-sepolia-rpc
 ```
 
 Output:

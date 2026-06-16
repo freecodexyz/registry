@@ -14,7 +14,7 @@ Source: [`freecodexyz/registry`](https://github.com/freecodexyz/registry).
 The runtime layout is intentionally simple:
 
 ```
-Sepolia RPC ──────► api (indexer)  ──► SQLite
+Base Sepolia RPC ─► api (indexer)  ──► SQLite
                               ▲
                               │
 GitHub REST API ──────────────┘  (metadata enrichment)
@@ -42,7 +42,7 @@ The chain is the source of truth. The indexer polls the RIK contract for `RepoRe
 The monorepo uses pnpm workspaces. From the repo root:
 
 ```bash
-CONTRACT_ADDRESS="0xf696da98df236a36536e9385dAf05D196579612B" pnpm dev
+CONTRACT_ADDRESS="0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac" RPC_URL="https://base-sepolia-rpc.publicnode.com" CHAIN_ID=84532 pnpm dev
 ```
 
 This runs the API, the indexer, and the web app concurrently. Use the per-app helpers to develop pieces in isolation:

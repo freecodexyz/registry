@@ -10,7 +10,7 @@ The Registry web app is the public-facing surface where minted RIKs are browsed.
 Source: `apps/web/` in [`freecodexyz/registry`](https://github.com/freecodexyz/registry).
 
 ::: info In active development
-The app is being actively shaped. The pages below describe the current state at the time of writing; the public beta on Sepolia will follow.
+The app is being actively shaped. The pages below describe the current state at the time of writing; the public beta on Base Sepolia will follow.
 :::
 
 ## Stack
@@ -70,7 +70,7 @@ The same session is then used for any token-gated endpoint. See [Access Gating](
 From the repo root:
 
 ```bash
-CONTRACT_ADDRESS="0xf696da98df236a36536e9385dAf05D196579612B" pnpm dev
+CONTRACT_ADDRESS="0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac" RPC_URL="https://base-sepolia-rpc.publicnode.com" CHAIN_ID=84532 pnpm dev
 ```
 
 This starts the API, the indexer, and the web app concurrently. The web app defaults to `http://localhost:5173` (which is the only origin the API allows out of the box).

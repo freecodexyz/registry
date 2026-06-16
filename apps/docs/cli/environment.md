@@ -12,7 +12,7 @@ The `fcf` CLI is configured almost entirely through environment variables. This 
 | Variable | Used by | Default | Description |
 | --- | --- | --- | --- |
 | `PRIVATE_KEY` | `fcf register`, `fcf keys sync` | local wallet store | Hex private key (`0x...`) of the signer. |
-| `RPC_URL` | `fcf register`, `fcf keys sync`, `fcf list` | `https://ethereum-sepolia-rpc.publicnode.com` | RPC endpoint. |
+| `RPC_URL` | `fcf register`, `fcf keys sync`, `fcf list` | `https://base-sepolia-rpc.publicnode.com` | RPC endpoint. |
 | `ACTIONS_ID_TOKEN_REQUEST_URL` | `fcf register` | unset | Set automatically by GitHub Actions runners with `id-token: write`. |
 | `ACTIONS_ID_TOKEN_REQUEST_TOKEN` | `fcf register` | unset | Same as above. |
 | `GH_TOKEN` / `GITHUB_TOKEN` | `fcf github *`, `fcf wallet link` | unset (falls back to `gh auth`) | GitHub REST API token. |
@@ -22,12 +22,13 @@ The `fcf` CLI is configured almost entirely through environment variables. This 
 
 The CLI picks the chain based on `RPC_URL`:
 
-- If the URL contains the substring `sepolia`, it uses the **Sepolia** chain.
+- If the URL contains the substring `base-sepolia`, it uses the **Base Sepolia** chain.
+- If the URL contains the substring `sepolia`, it uses the legacy **Ethereum Sepolia** chain.
 - Otherwise, it uses the **`foundry`** (local anvil) chain.
 
 There is no flag override. To switch networks, change `RPC_URL`.
 
-> The protocol is currently testnet-only. Pointing the CLI at a non-Sepolia mainnet RPC will not work against the deployed contract; there is no mainnet deployment yet.
+> The protocol is currently testnet-only. Pointing the CLI at a mainnet RPC will not work against the deployed contract; there is no mainnet deployment yet.
 
 ## Local development against Anvil
 

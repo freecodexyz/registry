@@ -68,7 +68,7 @@ Key points:
 - `permissions.id-token: write` is **required**. Without it, GitHub will not issue an OIDC token to the workflow, and `fcf register` will fail with "GitHub OIDC env vars not found".
 - The workflow expects three things in the repository:
   - **Secret** `FCF_PRIVATE_KEY`, the wallet that will sign the on-chain transaction. Use [`fcf wallet link`](/cli/wallet#link) to set this.
-  - **Variable** `FCF_RPC_URL`, your Sepolia RPC endpoint. Use `fcf github vars set FCF_RPC_URL <url>`.
+  - **Variable** `FCF_RPC_URL`, your Base Sepolia RPC endpoint. Use `fcf github vars set FCF_RPC_URL <url>`.
   - **Variable** `FCF_CONTRACT`, the RIK contract address. Use `fcf github vars set FCF_CONTRACT <addr>`.
 - The CLI is invoked via `npm exec` with the `alpha` tag, so no separate install step is needed.
 

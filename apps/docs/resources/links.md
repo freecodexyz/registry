@@ -40,7 +40,7 @@ Anything not listed here should be treated as unofficial.
 
 | Network | Contract | Address |
 | --- | --- | --- |
-| Sepolia | `RIK` | `0xf696da98df236a36536e9385dAf05D196579612B` |
+| Base Sepolia | `RIK` | `0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac` |
 
 Cross-check against the [`freecodexyz/fcf` README](https://github.com/freecodexyz/fcf#readme) before pointing live tooling at any address.
 

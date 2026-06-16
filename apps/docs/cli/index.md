@@ -51,7 +51,7 @@ Most network/wallet behavior is controlled by environment variables. See [Enviro
 | Variable | Purpose |
 | --- | --- |
 | `PRIVATE_KEY` | Private key for the wallet that signs transactions. Falls back to the local wallet store. |
-| `RPC_URL` | RPC endpoint. Sepolia is selected automatically when the URL contains "sepolia". |
+| `RPC_URL` | RPC endpoint. The live deployment uses Base Sepolia. |
 | `ACTIONS_ID_TOKEN_REQUEST_URL` / `ACTIONS_ID_TOKEN_REQUEST_TOKEN` | Set by GitHub Actions. Required for the runtime OIDC token request when no `--oidc-token` flag is provided. |
 | `GH_TOKEN` / `GITHUB_TOKEN` | Used by GitHub API helpers (`github vars`, `github secrets`, `github whoami`, `wallet link`). |
 | `SKIP_STATIC_ABI` | Use the live Foundry artifact instead of the committed ABI. |

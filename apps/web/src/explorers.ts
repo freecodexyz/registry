@@ -7,7 +7,7 @@ const EXPLORERS: Record<number, { name: string; baseUrl: string }> = {
 }
 
 function explorerFor(chainId: number) {
-  return EXPLORERS[chainId] ?? EXPLORERS[sepolia.id]
+  return EXPLORERS[chainId] ?? EXPLORERS[baseSepolia.id]
 }
 
 export function chainLabel(chainId: number) {

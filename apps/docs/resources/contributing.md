@@ -61,7 +61,7 @@ pnpm install
 Run everything (API + indexer + web app):
 
 ```bash
-CONTRACT_ADDRESS="0xf696da98df236a36536e9385dAf05D196579612B" pnpm dev
+CONTRACT_ADDRESS="0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac" RPC_URL="https://base-sepolia-rpc.publicnode.com" CHAIN_ID=84532 pnpm dev
 ```
 
 Per-app helpers:
@@ -101,7 +101,7 @@ Match this convention when you contribute.
 - **Contract changes**, run `forge fmt --check`, `forge build --sizes`, and `forge test -vvv` under `contracts/`.
 - **ABI-affecting contract changes**, also run `pnpm abi`, `pnpm typecheck`, and `pnpm build` in `cli/`.
 
-Keep Foundry tests deterministic and local. Don't hit GitHub, Sepolia, or any live RPC from unit tests.
+Keep Foundry tests deterministic and local. Don't hit GitHub, Base Sepolia, or any live RPC from unit tests.
 
 ## License
 
