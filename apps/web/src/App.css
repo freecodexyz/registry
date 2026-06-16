@@ -99,6 +99,39 @@
   height: 40px;
 }
 
+.release-banner {
+  width: 100vw;
+  margin: 0 calc(50% - 50vw);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-width: 0 0 var(--bw);
+  border-color: var(--rule-strong);
+  background: color-mix(in oklab, var(--accent-soft) 45%, var(--bg));
+  color: var(--fg);
+  font-size: var(--t-sm);
+  text-align: center;
+}
+
+.release-banner__copy {
+  color: var(--fg-dim);
+}
+
+.release-banner__link {
+  color: var(--fg);
+  font-weight: var(--w-medium);
+  text-decoration: underline;
+  text-decoration-thickness: var(--bw);
+  text-underline-offset: 4px;
+}
+
+.release-banner__link:hover {
+  color: var(--accent-deep);
+}
+
 .top-navbar--mobile .top-navbar__logo {
   width: 32px;
   height: 32px;

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Badge, Notice } from '@freecodexyz/ui'
 import { ConnectButton } from './ConnectButton'
 import { ThemeSwitch } from './ThemeSwitch'
 import logoUrl from './assets/fcf-logo.svg'
@@ -29,6 +30,10 @@ export function TopNavbar() {
 
   return (
     <header className={navClassName} data-accent="emerald">
+      <Notice className="release-banner" role="status">
+        <span className="release-banner__copy">Registry is still in alpha and currently live on Base Sepolia Testnet.</span>
+        <a className="release-banner__link" href="https://docs.freecodefund.xyz/guide/troubleshooting#need-more-help">Report an issue or bug</a>
+      </Notice>
       <nav className={innerClassName} aria-label={isMobile ? 'Mobile navigation' : 'Main navigation'}>
         {isMobile && (
           <div
