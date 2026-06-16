@@ -13,6 +13,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
   const { disconnect } = useDisconnect()
   const signInWithWallet = useSignIn()
   const attemptedSignInAddress = useRef<`0x${string}` | null>(null)
+  const signInPromise = useRef<Promise<void> | null>(null)
   const [signedInAddress, setSignedInAddress] = useState<`0x${string}` | null>(null)
   const [isSessionLoading, setIsSessionLoading] = useState(true)
   const [isSigningIn, setIsSigningIn] = useState(false)
@@ -52,17 +53,25 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
     return () => controller.abort()
   }, [])
 
-  const signIn = useCallback(async () => {
-    setError(null)
-    setIsSigningIn(true)
-    try {
-      const session = await signInWithWallet()
-      setSignedInAddress(session.address)
-    } catch (err) {
-      setError({ address, message: err instanceof Error ? err.message : 'sign-in failed' })
-    } finally {
-      setIsSigningIn(false)
-    }
+  const signIn = useCallback(() => {
+    if (signInPromise.current) return signInPromise.current
+
+    const nextSignIn = (async () => {
+      setError(null)
+      setIsSigningIn(true)
+      try {
+        const session = await signInWithWallet()
+        setSignedInAddress(session.address)
+      } catch (err) {
+        setError({ address, message: err instanceof Error ? err.message : 'sign-in failed' })
+      } finally {
+        setIsSigningIn(false)
+        signInPromise.current = null
+      }
+    })()
+
+    signInPromise.current = nextSignIn
+    return nextSignIn
   }, [address, signInWithWallet])
 
   useEffect(() => {
