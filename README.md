@@ -1,3 +1,7 @@
+<div>
+    <img src="assets/fcf-canvas-landscape-registry.png" />
+</div>
+
 # registry
 
 fcf registry platform monorepo.
