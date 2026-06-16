@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Badge, Notice } from '@freecodexyz/ui'
+import { Notice } from '@freecodexyz/ui'
 import { ConnectButton } from './ConnectButton'
 import { ThemeSwitch } from './ThemeSwitch'
 import logoUrl from './assets/fcf-logo.svg'
