@@ -20,5 +20,4 @@ In the FCF stack as designed, `$freecode` is the unit of account for protocol-le
 
 ## Continue
 
-- [RIK Protocol](/concepts/rik), what _is_ shipped.
-- [Code-as-a-Business](/concepts/caab), the model the token will eventually plug into.
+- [RIK Protocol](/concepts/rik)

@@ -47,7 +47,7 @@ export default defineConfig({
           { text: 'Proof-of-Ownership', link: '/concepts/proof-of-ownership' },
           { text: 'GitHub OIDC Trust Model', link: '/concepts/oidc' },
           { text: 'Registry', link: '/concepts/registry' },
-          { text: 'Code-as-a-Business', link: '/concepts/caab' },
+          /* { text: 'Code-as-a-Business', link: '/concepts/caab' }, */
           { text: '$freecode token', link: '/concepts/freecode-token' },
         ],
       },

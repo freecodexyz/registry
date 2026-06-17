@@ -56,5 +56,4 @@ If we had relied on social login + a backend mint, we would have had to ask the 
 
 ## Continue
 
-- [Code-as-a-Business](/concepts/caab), the model in concept terms.
-- [RIK Protocol](/concepts/rik), the on-chain primitive that makes it possible.
+- [RIK Protocol](/concepts/rik)
