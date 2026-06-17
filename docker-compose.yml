@@ -34,7 +34,11 @@ services:
     volumes:  ["registry-data:/data"]
 
   web:
-    build: { context: ., dockerfile: apps/web/Dockerfile }
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_WALLETCONNECT_PROJECT_ID: ${VITE_WALLETCONNECT_PROJECT_ID:-}
     environment: { VITE_API_URL: "http://localhost:3000" }
     ports: ["${WEB_PUBLISHED_PORT:-5173}:80"]
 

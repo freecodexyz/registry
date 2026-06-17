@@ -142,16 +142,17 @@ locals {
   web_origin = "http://${local.web_host}"
 
   default_app_env = {
-    ALLOWED_ORIGINS        = jsonencode([local.web_origin])
-    CONTRACT_ADDRESS       = "0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac"
-    CHAIN_ID               = "84532"
-    GATE_TOKEN_ADDRESS     = ""
-    GATE_TOKEN_MIN_BALANCE = ""
-    GITHUB_TOKEN           = ""
-    RPC_URL                = "https://base-sepolia-rpc.publicnode.com"
-    SESSION_KEY            = ""
-    SESSION_COOKIE_SECURE  = "false"
-    SIWE_DOMAIN            = local.web_host
+    ALLOWED_ORIGINS               = jsonencode([local.web_origin])
+    CONTRACT_ADDRESS              = "0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac"
+    CHAIN_ID                      = "84532"
+    GATE_TOKEN_ADDRESS            = ""
+    GATE_TOKEN_MIN_BALANCE        = ""
+    GITHUB_TOKEN                  = ""
+    RPC_URL                       = "https://base-sepolia-rpc.publicnode.com"
+    SESSION_KEY                   = ""
+    SESSION_COOKIE_SECURE         = "false"
+    SIWE_DOMAIN                   = local.web_host
+    VITE_WALLETCONNECT_PROJECT_ID = ""
   }
 
   remote_env = merge(local.default_app_env, var.app_env, {

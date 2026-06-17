@@ -16,6 +16,9 @@ RUN pnpm install --filter @freecodexyz/web... --frozen-lockfile
 COPY apps/web apps/web
 COPY packages/ui packages/ui
 
+ARG VITE_WALLETCONNECT_PROJECT_ID=""
+ENV VITE_WALLETCONNECT_PROJECT_ID=$VITE_WALLETCONNECT_PROJECT_ID
+
 RUN pnpm --filter @freecodexyz/web build
 
 FROM nginx:1.27-alpine AS runtime

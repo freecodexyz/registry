@@ -3,6 +3,8 @@ import { createContext, useContext } from 'react'
 export type AuthSessionContextValue = {
   signedInAddress: `0x${string}` | null;
   isSessionLoading: boolean;
+  isPreparingSignIn: boolean;
+  isSignInReady: boolean;
   isSigningIn: boolean;
   isLoggingOut: boolean;
   isSignedIn: boolean;

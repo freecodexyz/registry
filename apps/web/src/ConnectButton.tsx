@@ -6,7 +6,7 @@ import { useAuthSession } from "./useAuthSession";
 export function ConnectButton() {
     const { address, isConnected } = useAccount();
     const { connectors, connect } = useConnect();
-    const { isSignedIn, isLoggingOut, signedInAddress, signOut } = useAuthSession();
+    const { errorMessage, isPreparingSignIn, isSignInReady, isSignedIn, isSigningIn, isLoggingOut, signedInAddress, signIn, signOut } = useAuthSession();
     const [isOpen, setIsOpen] = useState(false);
 
     function handleConnect(connector: (typeof connectors)[number]) {
@@ -20,9 +20,15 @@ export function ConnectButton() {
         return (
             <div className="connect-panel connect-panel--account">
                 {displayAddress && <span className="connect-address">{displayAddress.slice(0, 6)}...{displayAddress.slice(-4)}</span>}
+                {!isSignedIn && (
+                    <Button size="sm" onClick={() => void signIn()} disabled={isPreparingSignIn || !isSignInReady || isSigningIn}>
+                        {isSigningIn ? "signing..." : isPreparingSignIn ? "preparing..." : isSignInReady ? "sign nonce" : "nonce unavailable"}
+                    </Button>
+                )}
                 <Button variant="ghost" size="sm" onClick={signOut} disabled={isLoggingOut}>
                     {isLoggingOut ? "disconnecting..." : "disconnect"}
                 </Button>
+                {errorMessage && <span className="connect-error" role="alert">{errorMessage}</span>}
             </div>
     );
 

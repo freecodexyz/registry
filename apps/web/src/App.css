@@ -232,6 +232,15 @@
   opacity: 0.55;
 }
 
+.gate-access-error {
+  max-width: 320px;
+  margin: var(--space-2) 0 0;
+  color: var(--danger);
+  font-family: var(--mono);
+  font-size: var(--t-mono);
+  line-height: var(--lh-normal);
+}
+
 .gate-access-menu__list {
   top: calc(100% + var(--space-4));
   right: auto;
@@ -279,6 +288,14 @@
   font-size: var(--t-mono);
   letter-spacing: var(--ls-mono);
   text-transform: uppercase;
+}
+
+.connect-error {
+  flex-basis: 100%;
+  color: var(--danger);
+  font-family: var(--mono);
+  font-size: var(--t-mono);
+  text-align: right;
 }
 
 .connect-menu {
