@@ -16,7 +16,7 @@ In the FCF stack as designed, `$freecode` is the unit of account for protocol-le
 - **Funding** routed to a RIK holder.
 - **Rewards** distributed against RIK holders for specific protocol-defined behavior.
 - **Staking** of `$freecode` against a repo, with the RIK as the identity being staked against.
-- **Trading fees** on the future code marketplace, settled in `$freecode`.
+- **Trading fees** on the future code marketplace.
 
 ## Continue
 

@@ -83,7 +83,7 @@ The mechanism is described in TLDR form in our public [Proof-of-Ownership articl
 
 RIK is intentionally minimal: a verifiable claim that _this Ethereum address controls this GitHub repository_. With that as a base primitive, FCF can build repo-native, trust-less mechanics:
 
-- **Funding** paid in $freecode to the RIK holder.
+- **Funding** paid to the RIK holder.
 - **Rewards** routed by RIK.
 - **Staking** of $freecode against a repo, with the RIK as the identity.
 - **Portable history** across renames and transfers (immutable `repository_id`).
