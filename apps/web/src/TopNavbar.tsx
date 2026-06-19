@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Notice } from '@freecodexyz/ui'
+import { Link } from 'react-router-dom'
 import { ConnectButton } from './ConnectButton'
 import { ThemeSwitch } from './ThemeSwitch'
 import logoUrl from './assets/fcf-logo.svg'
@@ -59,7 +60,7 @@ export function TopNavbar({ showPageLinks = true }: TopNavbarProps) {
               <div className="top-navbar__mobile-menu-panel" role="menu">
                 {showPageLinks && (
                   <div className="top-navbar__page-links top-navbar__page-links--mobile" aria-label="Available pages">
-                    <a className="top-navbar__page-link" href="/" aria-current="page" role="menuitem">Registry</a>
+                    <Link className="top-navbar__page-link" to="/registry" aria-current="page" role="menuitem">Registry</Link>
                     <span className="top-navbar__page-link top-navbar__page-link--disabled" aria-disabled="true" role="menuitem">Marketplace</span>
                   </div>
                 )}
@@ -71,12 +72,12 @@ export function TopNavbar({ showPageLinks = true }: TopNavbarProps) {
             )}
           </div>
         )}
-        <a className="top-navbar__brand" href="/" aria-label="FreeCode Registry">
+        <Link className="top-navbar__brand" to="/registry" aria-label="FreeCode Registry">
           <img className="top-navbar__logo" src={logoUrl} alt="" />
-        </a>
+        </Link>
         {showPageLinks && !isMobile && (
           <div className="top-navbar__page-links" aria-label="Available pages">
-            <a className="top-navbar__page-link" href="/" aria-current="page">Registry</a>
+            <Link className="top-navbar__page-link" to="/registry" aria-current="page">Registry</Link>
             <span className="top-navbar__page-link top-navbar__page-link--disabled" aria-disabled="true">Marketplace</span>
           </div>
         )}

@@ -1,19 +1,11 @@
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { GateView } from './GateView'
 import { RepositoriesTable } from './RepositoriesTable'
 import { TopNavbar } from './TopNavbar'
 import { useAuthSession } from './useAuthSession'
 import './App.css'
 
-function App() {
-  const { isSignedIn, isSessionLoading } = useAuthSession()
-
-  if (isSessionLoading || !isSignedIn) return (
-    <>
-      <TopNavbar showPageLinks={false} />
-      <GateView />
-    </>
-  )
-
+function RegistryPage() {
   return (
     <>
       <TopNavbar />
@@ -28,6 +20,24 @@ function App() {
         <RepositoriesTable />
       </main>
     </>
+  )
+}
+
+function App() {
+  const { isSignedIn, isSessionLoading } = useAuthSession()
+
+  if (isSessionLoading || !isSignedIn) return (
+    <>
+      <TopNavbar showPageLinks={false} />
+      <GateView />
+    </>
+  )
+
+  return (
+    <Routes>
+      <Route path="/registry" element={<RegistryPage />} />
+      <Route path="*" element={<Navigate to="/registry" replace />} />
+    </Routes>
   )
 }
 
