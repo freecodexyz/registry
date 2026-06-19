@@ -35,6 +35,15 @@ CREATE TABLE IF NOT EXISTS github_meta (
   owner_name TEXT,
   fetched_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS markets (
+  repo_id TEXT PRIMARY KEY,
+  asset TEXT NOT NULL,
+  hook TEXT NOT NULL,
+  pool_id TEXT NOT NULL,
+  launched_at INTEGER NOT NULL,
+  launcher TEXT NOT NULL,
+  UNIQUE (asset)
+);
 CREATE TABLE IF NOT EXISTS indexer_state (
   key TEXT PRIMARY KEY, value TEXT
 );
@@ -76,6 +85,12 @@ ON CONFLICT(repo_id) DO UPDATE SET
   block_number=excluded.block_number,
   transaction_hash=COALESCE(excluded.transaction_hash, repos.transaction_hash),
   chain_id=excluded.chain_id
+`);
+
+export const insertMarket = db.prepare(`
+INSERT OR IGNORE INTO markets
+  (repo_id, asset, hook, pool_id, launched_at, launcher)
+VALUES (?, ?, ?, ?, ?, ?)
 `);
 
 export const listRepos = db.prepare(`
