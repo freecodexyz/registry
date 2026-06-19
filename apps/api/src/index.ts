@@ -12,6 +12,7 @@ import { getMeta, insertRepo, listRepos, upsertMeta, db, type GithubMetaRow, typ
 import { FastifySSEPlugin } from "fastify-sse-v2";
 import { registryEvents } from "./events";
 import rateLimit from "@fastify/rate-limit";
+import { registerCandles } from "./candles";
 
 const APP_NAME                      = "registry-api";
 const RIK_ADDRESS                   = process.env.CONTRACT_ADDRESS as `0x${string}`;
@@ -326,6 +327,8 @@ app.addHook("preHandler", async (req, _) => {
     if (!address) throw httpErrors.unauthorized("not signed in");
     if (!(await checkGate(address))) return httpErrors.unauthorized("insufficient $FREECODE balance");
 });
+
+await app.register(registerCandles);
 
 function readMessage(message: unknown): string {
     if (typeof message !== "string" || !message) throw httpErrors.badRequest("message is required");
