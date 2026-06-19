@@ -1,6 +1,6 @@
 import { decodeEventLog, parseAbiItem, type Address, type Hash, type Hex } from "viem";
-import { db, insertMarket, insertRepo, upsertMeta } from "./db";
-import { client, RIK_ADDRESS, RepoRegisteredEvent, MarketLaunchedEvent, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID, LAUNCHER_ADDRESS } from "./index";
+import { db, insertMarket, insertRepo, insertTrade, upsertMeta } from "./db";
+import { client, RIK_ADDRESS, RepoRegisteredEvent, MarketLaunchedEvent, SwapEvent, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID, LAUNCHER_ADDRESS, V4_POOL_MANAGER } from "./index";
 import { fetchOwnerUsername, fetchRepoMetaData, getGhClient } from "./github";
 import { registryEvents } from "./events";
 
@@ -46,7 +46,7 @@ export async function tick() {
     });
     repoCreatedTx(repoCreatedLogs);
 
-
+    // RIKLauncher Events -> market creation
     const launchLogs = await client.getLogs({
         address: LAUNCHER_ADDRESS, event: MarketLaunchedEvent, fromBlock: from, toBlock: head
     });
@@ -63,6 +63,36 @@ export async function tick() {
         }
     }) 
     launchTx(launchesParsed);
+
+    // Market pool swap events
+    const knownPools = new Map<Hex, string>((() => {
+        const rows = db.prepare("SELECT pool_id, repo_id FROM markets").all() as any[]
+        return rows.map((r: any) => [r.pool_id.toLowerCase(), r.repo_id])
+    })()
+    );
+    if (knownPools.size === 0) return; // <-- nothing to index yet
+
+    const swaps = await client.getLogs({
+        address: V4_POOL_MANAGER, event: SwapEvent,
+        args: { id: Array.from(knownPools.keys()) as `0x${string}`[] },
+        fromBlock: from, toBlock: head
+    });
+
+    await Promise.all(swaps.map((l) => cacheBlockTimestamp(l.blockNumber)));
+
+    const swapTx = db.transaction((logs: typeof swaps) => {
+        for (const l of logs) {
+            const poolId = l.args.id.toLowerCase() as Hex;
+            insertTrade.run(
+                l.transactionHash, l.logIndex, poolId,
+                knownPools.get(poolId)!, l.args.sender,
+                String(l.args.amount0), String(l.args.amount1),
+                String(l.args.sqrtPriceX96), Number(l.blockNumber),
+                blockTs(l.blockNumber)
+            );
+        }
+    });
+    swapTx(swaps);
    
 
     setLastIndexedBlock(head);
@@ -127,6 +157,19 @@ async function parseHookFromTx(tx: Hash | null): Promise<ParseHookResult> {
 
     throw new Error(`missing Airlock Create or PoolManager Initialize event in tx ${tx}`);
 };
+
+function blockTs(blockNumber: bigint): number {
+    const cached = blockTimestampCache.get(blockNumber);
+    if (cached == null) throw new Error(`missing timestamp for block ${blockNumber}`);
+    return cached;
+}
+
+async function cacheBlockTimestamp(blockNumber: bigint): Promise<void> {
+    if (blockTimestampCache.has(blockNumber)) return;
+
+    const block = await client.getBlock({ blockNumber });
+    blockTimestampCache.set(blockNumber, Number(block.timestamp));
+}
 
 
 // start the indexer

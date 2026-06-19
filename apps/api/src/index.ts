@@ -31,13 +31,15 @@ const MAX_PAGE_SIZE                 = 200;
 const SHOULD_RUN_INDEXER            = process.env.INDEXER === "1" || process.env.INDEXER?.toLowerCase() === "true";
 const CHAIN_ID                      = baseSepolia.id;
 const LAUNCHER_ADDRESS              = process.env.LAUNCHER_ADDRESS as `0x${string}` | undefined;
+const V4_POOL_MANAGER               = process.env.V4_POOL_MANAGER as `0x${string}` | undefined;
 
 
 // server can't start with these
-if (!RIK_ADDRESS) die(new Error("RIK contract address is missing"));
-if (!GATE_TOKEN_ADDRESS) die(new Error("gate token address is missing"));
-if (!GITHUB_TOKEN) die(new Error("github token is missing"));
-if (!LAUNCHER_ADDRESS) die(new Error("Launcher address missing"));
+if (!RIK_ADDRESS)           die(new Error("RIK contract address is missing"));
+if (!GATE_TOKEN_ADDRESS)    die(new Error("gate token address is missing"));
+if (!GITHUB_TOKEN)          die(new Error("github token is missing"));
+if (!LAUNCHER_ADDRESS)      die(new Error("Launcher address missing"));
+if (!V4_POOL_MANAGER)       die(new Error("V4 Pool Manager address is missing"));
 
 // address -> nonce (single-use)
 // all address must be stored normalized in lower case here
@@ -50,6 +52,7 @@ const client = createPublicClient({
 
 const RepoRegisteredEvent = parseAbiItem("event RepoRegistered(uint256 indexed repoId, address indexed registrant, uint64 githubOwnerId, uint64 registeredAt)");
 const MarketLaunchedEvent = parseAbiItem("event MarketLaunched(uint256 indexed repoId, address indexed asset, address indexed launcher)");
+const SwapEvent = parseAbiItem("event Swap(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick, uint24 fee)");
 
 const app = fastify({ logger: true });
 
@@ -397,4 +400,4 @@ function repoPayloadFromRow(row: RepoWithMetaRow): RepoStreamPayload {
 
 if(!SHOULD_RUN_INDEXER) await app.listen({ port: 3000, host: "0.0.0.0" });
 
-export {client, RepoRegisteredEvent, MarketLaunchedEvent, RIK_ADDRESS, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID, LAUNCHER_ADDRESS};
+export {client, RepoRegisteredEvent, MarketLaunchedEvent, SwapEvent, RIK_ADDRESS, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID, LAUNCHER_ADDRESS, V4_POOL_MANAGER};

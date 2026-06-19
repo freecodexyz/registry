@@ -44,6 +44,20 @@ CREATE TABLE IF NOT EXISTS markets (
   launcher TEXT NOT NULL,
   UNIQUE (asset)
 );
+CREATE TABLE IF NOT EXISTS trades (
+  tx_hash TEXT NOT NULL,
+  log_index INTEGER NOT NULL,
+  pool_id TEXT NOT NULL,
+  repo_id TEXT NOT NULL,
+  sender TEXT NOT NULL,
+  amount0 TEXT NOT NULL, -- signed, int128
+  amount1 TEXT NOT NULL,
+  sqrtPriceX96 TEXT NOT NULL, -- post-swap price
+  block_number INTEGER NOT NULL,
+  ts INTEGER NOT NULL,
+  PRIMARY KEY (tx_hash, log_index)
+);
+CREATE INDEX IF NOT EXISTS trades_by_pool ON trades (pool_id, block_number);
 CREATE TABLE IF NOT EXISTS indexer_state (
   key TEXT PRIMARY KEY, value TEXT
 );
@@ -91,6 +105,12 @@ export const insertMarket = db.prepare(`
 INSERT OR IGNORE INTO markets
   (repo_id, asset, hook, pool_id, launched_at, launcher)
 VALUES (?, ?, ?, ?, ?, ?)
+`);
+
+export const insertTrade = db.prepare(`
+INSERT OR IGNORE INTO trades
+  (tx_hash, log_index, pool_id, repo_id, sender, amount0, amount1, sqrtPriceX96, block_number, ts)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
 export const listRepos = db.prepare(`
