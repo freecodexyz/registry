@@ -2,6 +2,8 @@ aws_region = "us-east-1"
 
 app_env = {
   CONTRACT_ADDRESS              = "0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac"
+  LAUNCHER_ADDRESS              = "0x..."
+  V4_POOL_MANAGER               = "0x..."
   CHAIN_ID                      = "84532"
   GATE_TOKEN_ADDRESS            = "0x..."
   GATE_TOKEN_MIN_BALANCE        = "1"

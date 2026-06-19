@@ -3,6 +3,8 @@ services:
     build: { context: ., dockerfile: apps/api/Dockerfile }
     environment:
       CONTRACT_ADDRESS:       ${CONTRACT_ADDRESS:-0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac}
+      LAUNCHER_ADDRESS:       ${LAUNCHER_ADDRESS}
+      V4_POOL_MANAGER:        ${V4_POOL_MANAGER}
       CHAIN_ID:               ${CHAIN_ID:-84532}
       GATE_TOKEN_ADDRESS:     ${GATE_TOKEN_ADDRESS}
       GATE_TOKEN_MIN_BALANCE: ${GATE_TOKEN_MIN_BALANCE}
@@ -21,6 +23,8 @@ services:
     build: { context: ., dockerfile: apps/api/Dockerfile }
     environment:
       CONTRACT_ADDRESS:       ${CONTRACT_ADDRESS:-0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac}
+      LAUNCHER_ADDRESS:       ${LAUNCHER_ADDRESS}
+      V4_POOL_MANAGER:        ${V4_POOL_MANAGER}
       CHAIN_ID:               ${CHAIN_ID:-84532}
       GATE_TOKEN_ADDRESS:     ${GATE_TOKEN_ADDRESS}
       GATE_TOKEN_MIN_BALANCE: ${GATE_TOKEN_MIN_BALANCE}
