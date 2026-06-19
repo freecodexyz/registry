@@ -9,7 +9,7 @@ function App() {
 
   if (isSessionLoading || !isSignedIn) return (
     <>
-      <TopNavbar />
+      <TopNavbar showPageLinks={false} />
       <GateView />
     </>
   )

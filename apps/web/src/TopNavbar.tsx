@@ -10,7 +10,11 @@ function isMobileNav() {
   return typeof window !== 'undefined' && window.matchMedia(MOBILE_NAV_QUERY).matches
 }
 
-export function TopNavbar() {
+type TopNavbarProps = {
+  showPageLinks?: boolean
+}
+
+export function TopNavbar({ showPageLinks = true }: TopNavbarProps) {
   const [isMobile, setIsMobile] = useState(isMobileNav)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const navClassName = isMobile ? 'top-navbar top-navbar--mobile' : 'top-navbar top-navbar--desktop'
@@ -53,6 +57,12 @@ export function TopNavbar() {
             </button>
             {isMenuOpen && (
               <div className="top-navbar__mobile-menu-panel" role="menu">
+                {showPageLinks && (
+                  <div className="top-navbar__page-links top-navbar__page-links--mobile" aria-label="Available pages">
+                    <a className="top-navbar__page-link" href="/" aria-current="page" role="menuitem">Registry</a>
+                    <span className="top-navbar__page-link top-navbar__page-link--disabled" aria-disabled="true" role="menuitem">Marketplace</span>
+                  </div>
+                )}
                 <div className="top-navbar__mobile-actions">
                   <ConnectButton />
                   <ThemeSwitch />
@@ -64,6 +74,12 @@ export function TopNavbar() {
         <a className="top-navbar__brand" href="/" aria-label="FreeCode Registry">
           <img className="top-navbar__logo" src={logoUrl} alt="" />
         </a>
+        {showPageLinks && !isMobile && (
+          <div className="top-navbar__page-links" aria-label="Available pages">
+            <a className="top-navbar__page-link" href="/" aria-current="page">Registry</a>
+            <span className="top-navbar__page-link top-navbar__page-link--disabled" aria-disabled="true">Marketplace</span>
+          </div>
+        )}
         {!isMobile && (
           <div className="top-navbar__actions">
             <ConnectButton />
