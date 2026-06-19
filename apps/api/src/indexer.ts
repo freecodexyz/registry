@@ -14,9 +14,15 @@ const PoolManagerInitializeEvent = parseAbiItem("event Initialize(bytes32 indexe
 const gh = getGhClient();
 const blockTimestampCache = new Map<bigint, number>();
 
-async function getLastIndexedBlock(): Promise<bigint> {
+async function getLastIndexedBlock(head: bigint): Promise<bigint> {
     const row = db.prepare("SELECT value FROM indexer_state WHERE key=?").get(INDEXER_STATE_KEY) as { value: string } | undefined;
-    return row ? BigInt(row.value) : (await client.getBlockNumber()) - DEFAULT_LIST_BLOCK_RANGE;
+    const oldestAvailableBlock = head > DEFAULT_LIST_BLOCK_RANGE ? head - DEFAULT_LIST_BLOCK_RANGE : 0n;
+    const lastIndexedBlock = row ? BigInt(row.value) : oldestAvailableBlock;
+    if (lastIndexedBlock < oldestAvailableBlock) {
+        setLastIndexedBlock(oldestAvailableBlock);
+        return oldestAvailableBlock;
+    }
+    return lastIndexedBlock;
 }
 
 function setLastIndexedBlock(n: bigint) {
@@ -28,7 +34,7 @@ function setLastIndexedBlock(n: bigint) {
 
 export async function tick() {
     const head = await client.getBlockNumber();
-    const from = await getLastIndexedBlock() + 1n;
+    const from = await getLastIndexedBlock(head) + 1n;
     if (from > head) return;
 
     // RIK Minting events
