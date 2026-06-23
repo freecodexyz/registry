@@ -7,12 +7,46 @@ import { registryEvents } from "./events";
 const POLL_MS   = 12_000;
 const SHOULD_RUN_INDEXER = process.env.INDEXER === "1" || process.env.INDEXER?.toLowerCase() === "true";
 const INDEXER_STATE_KEY = `last_block:${CHAIN_ID}:${RIK_ADDRESS.toLowerCase()}`;
+const INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
+const INTERVAL_SECS = {
+    "1m": 60,
+    "5m": 300,
+    "15m": 900,
+    "1h": 3600,
+    "4h": 14_400,
+    "1d": 86_400,
+} as const;
+const SQRT_TO_PRICE_SQL = `
+POW(CAST(sqrtPriceX96 AS REAL) / POW(2.0, 96), 2)
+`;
 
 const AirlockCreateEvent = parseAbiItem("event Create(address asset, address indexed numeraire, address initializer, address poolOrHook)");
 const PoolManagerInitializeEvent = parseAbiItem("event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)");
 
 const gh = getGhClient();
 const blockTimestampCache = new Map<bigint, number>();
+
+type TradePayload = {
+    txHash: Hash;
+    logIndex: number;
+    poolId: Hex;
+    repoId: string;
+    sender: Address;
+    amount0: string;
+    amount1: string;
+    sqrtPriceX96: string;
+    blockNumber: number;
+    ts: number;
+};
+
+type CandlePayload = {
+    time: number;
+    low: number | null;
+    high: number | null;
+    open: number | null;
+    close: number | null;
+    volume: number | null;
+};
 
 async function getLastIndexedBlock(head: bigint): Promise<bigint> {
     const row = db.prepare("SELECT value FROM indexer_state WHERE key=?").get(INDEXER_STATE_KEY) as { value: string } | undefined;
@@ -87,18 +121,39 @@ export async function tick() {
     await Promise.all(swaps.map((l) => cacheBlockTimestamp(l.blockNumber)));
 
     const swapTx = db.transaction((logs: typeof swaps) => {
+        const insertedTrades: TradePayload[] = [];
+
         for (const l of logs) {
             const poolId = l.args.id.toLowerCase() as Hex;
-            insertTrade.run(
-                l.transactionHash, l.logIndex, poolId,
-                knownPools.get(poolId)!, l.args.sender,
-                String(l.args.amount0), String(l.args.amount1),
-                String(l.args.sqrtPriceX96), Number(l.blockNumber),
-                blockTs(l.blockNumber)
+            const repoId = knownPools.get(poolId)!;
+            const tradePayload = {
+                txHash: l.transactionHash,
+                logIndex: l.logIndex,
+                poolId,
+                repoId,
+                sender: l.args.sender,
+                amount0: String(l.args.amount0),
+                amount1: String(l.args.amount1),
+                sqrtPriceX96: String(l.args.sqrtPriceX96),
+                blockNumber: Number(l.blockNumber),
+                ts: blockTs(l.blockNumber),
+            } satisfies TradePayload;
+
+            const result = insertTrade.run(
+                tradePayload.txHash, tradePayload.logIndex, tradePayload.poolId,
+                tradePayload.repoId, tradePayload.sender,
+                tradePayload.amount0, tradePayload.amount1,
+                tradePayload.sqrtPriceX96, tradePayload.blockNumber,
+                tradePayload.ts
             );
+
+            if (result.changes > 0) insertedTrades.push(tradePayload);
         }
+
+        return insertedTrades;
     });
-    swapTx(swaps);
+    const insertedTrades = swapTx(swaps);
+    for (const tradePayload of insertedTrades) emitLiveTrade(tradePayload);
    
 
     setLastIndexedBlock(head);
@@ -168,6 +223,37 @@ function blockTs(blockNumber: bigint): number {
     const cached = blockTimestampCache.get(blockNumber);
     if (cached == null) throw new Error(`missing timestamp for block ${blockNumber}`);
     return cached;
+}
+
+function emitLiveTrade(tradePayload: TradePayload): void {
+    const repoId = tradePayload.repoId;
+
+    for (const interval of INTERVALS) {
+        const secs = INTERVAL_SECS[interval];
+        const bucket = Math.floor(tradePayload.ts / secs) * secs;
+        const row = db.prepare(`
+            SELECT ? AS time,
+                ${SQRT_TO_PRICE_SQL.replace("sqrtPriceX96", "MIN(sqrtPriceX96)")} AS low,
+                ${SQRT_TO_PRICE_SQL.replace("sqrtPriceX96", "MAX(sqrtPriceX96)")} AS high,
+                (SELECT ${SQRT_TO_PRICE_SQL} FROM trades
+                    WHERE repo_id = ? AND ts BETWEEN ? AND ?
+                    ORDER BY block_number ASC, log_index ASC LIMIT 1) AS open,
+                (SELECT ${SQRT_TO_PRICE_SQL} FROM trades
+                    WHERE repo_id = ? AND ts BETWEEN ? AND ?
+                    ORDER BY block_number DESC, log_index DESC LIMIT 1) AS close,
+                SUM(ABS(CAST(amount0 AS INTEGER))) AS volume
+            FROM trades WHERE repo_id = ? AND ts BETWEEN ? AND ?
+        `).get(
+            bucket,
+            repoId, bucket, bucket + secs - 1,
+            repoId, bucket, bucket + secs - 1,
+            repoId, bucket, bucket + secs - 1,
+        ) as CandlePayload | undefined;
+
+        if (row) registryEvents.emit("event", `candles:${repoId}:${interval}`, row);
+    }
+
+    registryEvents.emit("event", `trades:${repoId}`, tradePayload);
 }
 
 async function cacheBlockTimestamp(blockNumber: bigint): Promise<void> {
