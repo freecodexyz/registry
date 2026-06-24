@@ -4,6 +4,7 @@ app_env = {
   CONTRACT_ADDRESS              = "0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac"
   LAUNCHER_ADDRESS              = "0x..."
   V4_POOL_MANAGER               = "0x..."
+  STATE_VIEW                    = "0x571291b572ed32ce6751a2cb2486ebee8defb9b4"
   CHAIN_ID                      = "84532"
   GATE_TOKEN_ADDRESS            = "0x..."
   GATE_TOKEN_MIN_BALANCE        = "1"

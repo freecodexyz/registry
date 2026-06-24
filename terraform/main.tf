@@ -152,6 +152,7 @@ locals {
     SESSION_KEY                   = ""
     SESSION_COOKIE_SECURE         = "false"
     SIWE_DOMAIN                   = local.web_host
+    STATE_VIEW                    = "0x571291b572ed32ce6751a2cb2486ebee8defb9b4"
     VITE_WALLETCONNECT_PROJECT_ID = ""
   }
 
