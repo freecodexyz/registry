@@ -98,8 +98,12 @@ export async function tick() {
     })));
 
     const launchTx = db.transaction((rows: typeof launchesParsed) => {
-        for (const { log: l, hook, poolId } of rows) {
-            insertMarket.run(String(l.args.repoId), l.args.asset, hook, poolId, Number(l.blockNumber), l.args.launcher);
+        for (const { log: l, hook, poolId, currency0, currency1, fee, tickSpacing } of rows) {
+            insertMarket.run(
+                String(l.args.repoId), l.args.asset, hook, poolId,
+                currency0, currency1, fee, tickSpacing,
+                Number(l.blockNumber), l.args.launcher,
+            );
         }
     }) 
     launchTx(launchesParsed);
@@ -183,16 +187,32 @@ export async function tick() {
 }
 
 // helpers
-type ParseHookResult = { hook: Address; poolId: Hex };
+type ParseHookResult = {
+    hook: Address;
+    poolId: Hex;
+    currency0: Address;
+    currency1: Address;
+    fee: number;
+    tickSpacing: number;
+};
 type AirlockCreateDecoded = { args: { poolOrHook: Address } };
-type PoolManagerInitializeDecoded = { args: { id: Hex } };
+type PoolManagerInitializeDecoded = {
+    args: {
+        id: Hex;
+        currency0: Address;
+        currency1: Address;
+        fee: number;
+        tickSpacing: number;
+        hooks: Address;
+    };
+};
 
 async function parseHookFromTx(tx: Hash | null): Promise<ParseHookResult> {
     if (!tx) throw new Error("market launch log is missing transaction hash");
 
     const receipt = await client.getTransactionReceipt({ hash: tx });
     let hook: Address | undefined;
-    let poolId: Hex | undefined;
+    let pool: Omit<ParseHookResult, "hook"> | undefined;
 
     for (const log of receipt.logs) {
         try {
@@ -210,10 +230,16 @@ async function parseHookFromTx(tx: Hash | null): Promise<ParseHookResult> {
                 data: log.data,
                 topics: log.topics,
             }) as PoolManagerInitializeDecoded;
-            poolId = decoded.args.id;
+            pool = {
+                poolId: decoded.args.id,
+                currency0: decoded.args.currency0,
+                currency1: decoded.args.currency1,
+                fee: decoded.args.fee,
+                tickSpacing: decoded.args.tickSpacing,
+            };
         } catch {}
 
-        if (hook && poolId) return { hook, poolId };
+        if (hook && pool) return { hook, ...pool };
     }
 
     throw new Error(`missing Airlock Create or PoolManager Initialize event in tx ${tx}`);
