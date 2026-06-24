@@ -1,0 +1,44 @@
+export const stateViewAbi = [
+    {
+        type: "function",
+        name: "getSlot0",
+        stateMutability: "view",
+        inputs: [{ name: "poolId", type: "bytes32" }],
+        outputs: [
+            { name: "sqrtPriceX96", type: "uint160" },
+            { name: "tick", type: "int24" },
+            { name: "protocolFee", type: "uint24" },
+            { name: "lpFee", type: "uint24" },
+        ],
+    },
+    {
+        type: "function",
+        name: "getLiquidity",
+        stateMutability: "view",
+        inputs: [{ name: "poolId", type: "bytes32" }],
+        outputs: [{ name: "liquidity", type: "uint128" }],
+    },
+    {
+        type: "function",
+        name: "getTickBitmap",
+        stateMutability: "view",
+        inputs: [
+            { name: "poolId", type: "bytes32" },
+            { name: "tick", type: "int16" },
+        ],
+        outputs: [{ name: "tickBitmap", type: "uint256" }],
+    },
+    {
+        type: "function",
+        name: "getTickLiquidity",
+        stateMutability: "view",
+        inputs: [
+            { name: "poolId", type: "bytes32" },
+            { name: "tick", type: "int24" },
+        ],
+        outputs: [
+            { name: "liquidityGross", type: "uint128" },
+            { name: "liquidityNet", type: "int128" },
+        ],
+    },
+] as const;
