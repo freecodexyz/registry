@@ -295,10 +295,13 @@ app.get<{
     Params: { repoId: string };
     Querystring: { limit?: number };
 }>("/api/market/:repoId/trades", async (req) => {
-    const limitRaw = Number(req.query.limit ?? 500);
-    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 1000) : 500;
+    const limitRaw = Number(req.query.limit ?? 1000);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 5000) : 1000;
     const rows = db.prepare(`
-        SELECT ts,
+        SELECT tx_hash,
+               log_index,
+               block_number,
+               ts,
                amount0,
                amount1,
                POW(CAST(sqrtPriceX96 AS REAL) / POW(2.0, 96), 2) AS price
@@ -306,7 +309,7 @@ app.get<{
         WHERE repo_id = ?
         ORDER BY ts DESC, block_number DESC, log_index DESC
         LIMIT ?
-    `).all(req.params.repoId, limit) as { ts: number; amount0: string; amount1: string; price: number }[];
+    `).all(req.params.repoId, limit) as { tx_hash: string; log_index: number; block_number: number; ts: number; amount0: string; amount1: string; price: number }[];
 
     return rows.map((row) => {
         const amount0 = BigInt(row.amount0);
@@ -314,6 +317,9 @@ app.get<{
         const size = amount1 < 0n ? -amount1 : amount1;
 
         return {
+            txHash: row.tx_hash,
+            logIndex: row.log_index,
+            blockNumber: row.block_number,
             ts: row.ts,
             price: row.price,
             size: size.toString(),
