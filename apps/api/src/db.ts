@@ -40,6 +40,10 @@ CREATE TABLE IF NOT EXISTS markets (
   asset TEXT NOT NULL,
   hook TEXT NOT NULL,
   pool_id TEXT NOT NULL,
+  currency0 TEXT,
+  currency1 TEXT,
+  fee INTEGER,
+  tick_spacing INTEGER,
   launched_at INTEGER NOT NULL,
   launcher TEXT NOT NULL,
   UNIQUE (asset)
@@ -67,6 +71,12 @@ const repoColumns = new Set((db.prepare("PRAGMA table_info(repos)").all() as { n
 if (!repoColumns.has("transaction_hash")) db.exec("ALTER TABLE repos ADD COLUMN transaction_hash TEXT");
 if (!repoColumns.has("chain_id")) db.exec(`ALTER TABLE repos ADD COLUMN chain_id INTEGER NOT NULL DEFAULT ${DEFAULT_CHAIN_ID}`);
 
+const marketColumns = new Set((db.prepare("PRAGMA table_info(markets)").all() as { name: string }[]).map((column) => column.name));
+if (!marketColumns.has("currency0")) db.exec("ALTER TABLE markets ADD COLUMN currency0 TEXT");
+if (!marketColumns.has("currency1")) db.exec("ALTER TABLE markets ADD COLUMN currency1 TEXT");
+if (!marketColumns.has("fee")) db.exec("ALTER TABLE markets ADD COLUMN fee INTEGER");
+if (!marketColumns.has("tick_spacing")) db.exec("ALTER TABLE markets ADD COLUMN tick_spacing INTEGER");
+
 export type RepoRow = {
   repo_id: string;
   registrant: string;
@@ -88,6 +98,19 @@ export type GithubMetaRow = {
   fetched_at: number;
 };
 
+export type MarketRow = {
+  repo_id: string;
+  asset: string;
+  hook: string;
+  pool_id: string;
+  currency0: string | null;
+  currency1: string | null;
+  fee: number | null;
+  tick_spacing: number | null;
+  launched_at: number;
+  launcher: string;
+};
+
 export const insertRepo = db.prepare(`
 INSERT INTO repos
   (repo_id, registrant, github_owner_id, registered_at, block_number, transaction_hash, chain_id)
@@ -102,9 +125,19 @@ ON CONFLICT(repo_id) DO UPDATE SET
 `);
 
 export const insertMarket = db.prepare(`
-INSERT OR IGNORE INTO markets
-  (repo_id, asset, hook, pool_id, launched_at, launcher)
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO markets
+  (repo_id, asset, hook, pool_id, currency0, currency1, fee, tick_spacing, launched_at, launcher)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(repo_id) DO UPDATE SET
+  asset=excluded.asset,
+  hook=excluded.hook,
+  pool_id=excluded.pool_id,
+  currency0=COALESCE(excluded.currency0, markets.currency0),
+  currency1=COALESCE(excluded.currency1, markets.currency1),
+  fee=COALESCE(excluded.fee, markets.fee),
+  tick_spacing=COALESCE(excluded.tick_spacing, markets.tick_spacing),
+  launched_at=excluded.launched_at,
+  launcher=excluded.launcher
 `);
 
 export const insertTrade = db.prepare(`
