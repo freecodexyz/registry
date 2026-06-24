@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
+import { Link, NavLink } from 'react-router'
 import { Notice } from '@freecodexyz/ui'
-import { ConnectButton } from './ConnectButton'
-import { ThemeSwitch } from './ThemeSwitch'
-import logoUrl from './assets/fcf-logo.svg'
+import { ConnectButton } from '../features/auth/ConnectButton'
+import { ThemeSwitch } from '../shared/theme/ThemeSwitch'
+import logoUrl from '../assets/fcf-logo.svg'
 
 const MOBILE_NAV_QUERY = '(max-width: 720px)'
 
@@ -11,12 +12,13 @@ function isMobileNav() {
 }
 
 type TopNavbarProps = {
-  showPageLinks?: boolean
+  registryAccess: 'locked' | 'unlocked';
 }
 
-export function TopNavbar({ showPageLinks = true }: TopNavbarProps) {
+export function TopNavbar({ registryAccess }: TopNavbarProps) {
   const [isMobile, setIsMobile] = useState(isMobileNav)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const showPageLinks = registryAccess === 'unlocked'
   const navClassName = isMobile ? 'top-navbar top-navbar--mobile' : 'top-navbar top-navbar--desktop'
   const innerClassName = isMobile ? 'top-navbar__mobile' : 'top-navbar__desktop'
 
@@ -59,8 +61,8 @@ export function TopNavbar({ showPageLinks = true }: TopNavbarProps) {
               <div className="top-navbar__mobile-menu-panel" role="menu">
                 {showPageLinks && (
                   <div className="top-navbar__page-links top-navbar__page-links--mobile" aria-label="Available pages">
-                    <a className="top-navbar__page-link" href="/" aria-current="page" role="menuitem">Registry</a>
-                    <span className="top-navbar__page-link top-navbar__page-link--disabled" aria-disabled="true" role="menuitem">Marketplace</span>
+                    <NavLink className="top-navbar__page-link" to="/registry" role="menuitem" onClick={() => setIsMenuOpen(false)}>Registry</NavLink>
+                    <NavLink className="top-navbar__page-link" to="/marketplace" role="menuitem" onClick={() => setIsMenuOpen(false)}>Marketplace</NavLink>
                   </div>
                 )}
                 <div className="top-navbar__mobile-actions">
@@ -71,13 +73,13 @@ export function TopNavbar({ showPageLinks = true }: TopNavbarProps) {
             )}
           </div>
         )}
-        <a className="top-navbar__brand" href="/" aria-label="FreeCode Registry">
+        <Link className="top-navbar__brand" to="/registry" aria-label="FreeCode Registry">
           <img className="top-navbar__logo" src={logoUrl} alt="" />
-        </a>
+        </Link>
         {showPageLinks && !isMobile && (
           <div className="top-navbar__page-links" aria-label="Available pages">
-            <a className="top-navbar__page-link" href="/" aria-current="page">Registry</a>
-            <span className="top-navbar__page-link top-navbar__page-link--disabled" aria-disabled="true">Marketplace</span>
+            <NavLink className="top-navbar__page-link" to="/registry">Registry</NavLink>
+            <NavLink className="top-navbar__page-link" to="/marketplace">Marketplace</NavLink>
           </div>
         )}
         {!isMobile && (

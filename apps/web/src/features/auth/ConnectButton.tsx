@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAccount, useConnect } from "wagmi";
 import { Button } from '@freecodexyz/ui';
 import { useAuthSession } from "./useAuthSession";
+import { WalletConnectorMenu } from "./WalletConnectorMenu";
 
 export function ConnectButton() {
     const { address, isConnected } = useAccount();
@@ -53,15 +54,7 @@ export function ConnectButton() {
                 >
                     Connect wallet
                 </Button>
-                {isOpen && (
-                    <div className="connect-menu__list" role="menu">
-                        {connectors.map((connector) => (
-                            <Button key={connector.id} variant="ghost" size="sm" block role="menuitem" onClick={() => handleConnect(connector)}>
-                                {connector.name}
-                            </Button>
-                        ))}
-                    </div>
-                )}
+                <WalletConnectorMenu connectors={connectors} isOpen={isOpen} onConnect={handleConnect} />
             </div>
         </div>
     );

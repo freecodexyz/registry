@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 let socket: WebSocket | null = null;
 const listeners = new Map<string, Set<(p: unknown) => void>>();
@@ -35,10 +35,16 @@ export function useSubscription<T>(
     cb: (p: T) => void,
     interval?: string,
 ) {
+    const callbackRef = useRef(cb);
+
+    useEffect(() => {
+        callbackRef.current = cb;
+    }, [cb]);
+
     useEffect(() => {
         const key = `${channel}:${market}${interval ? `:${interval}` : ""}`;
         const set = listeners.get(key) ?? new Set<(p: unknown) => void>();
-        const listener = cb as (p: unknown) => void;
+        const listener = (payload: unknown) => callbackRef.current(payload as T);
 
         set.add(listener);
         listeners.set(key, set);
@@ -57,5 +63,5 @@ export function useSubscription<T>(
                 }
             }
         };
-    }, [channel, market, interval, cb]);
+    }, [channel, market, interval]);
 }

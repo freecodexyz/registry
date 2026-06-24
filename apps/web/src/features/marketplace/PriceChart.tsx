@@ -8,6 +8,7 @@ import {
   type ISeriesApi,
   type UTCTimestamp,
 } from "lightweight-charts";
+import { Notice } from "@freecodexyz/ui";
 import { useSubscription } from "./ws";
 
 const INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
@@ -26,33 +27,59 @@ function candleColor(c: Candle) {
   return c.close >= c.open ? "rgba(22,163,74,0.4)" : "rgba(220,38,38,0.4)";
 }
 
+function isCandle(value: unknown): value is Candle {
+  return typeof value === "object" &&
+    value !== null &&
+    "time" in value &&
+    "open" in value &&
+    "high" in value &&
+    "low" in value &&
+    "close" in value &&
+    "volume" in value &&
+    typeof value.time === "number" &&
+    typeof value.open === "number" &&
+    typeof value.high === "number" &&
+    typeof value.low === "number" &&
+    typeof value.close === "number" &&
+    (typeof value.volume === "number" || typeof value.volume === "string");
+}
+
+async function loadCandles(repoId: string, interval: Interval, signal: AbortSignal): Promise<Candle[]> {
+  const response = await fetch(`/api/market/${repoId}/candles?interval=${interval}`, { signal });
+  if (!response.ok) throw new Error(`API returned ${response.status}`);
+
+  const data = await response.json() as unknown;
+  if (Array.isArray(data) && data.every(isCandle)) return data;
+
+  throw new Error("invalid candle response");
+}
+
 export function PriceChart({ repoId }: { repoId: string }) {
   const [interval, setInterval] = useState<Interval>("1m");
 
-  const { data } = useQuery<Candle[]>({
+  const candlesQuery = useQuery({
     queryKey: ["candles", repoId, interval],
-    queryFn: () =>
-      fetch(`/api/market/${repoId}/candles?interval=${interval}`).then((r) =>
-        r.json(),
-      ),
+    queryFn: ({ signal }) => loadCandles(repoId, interval, signal),
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
   const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volRef = useRef<ISeriesApi<"Histogram"> | null>(null);
 
-  useSubscription<Candle>("candles", repoId, (c) => {
+  useSubscription<unknown>("candles", repoId, (payload) => {
+    if (!isCandle(payload)) return;
+
     candleRef.current?.update({
-      time: c.time as UTCTimestamp,
-      open: c.open,
-      high: c.high,
-      low: c.low,
-      close: c.close,
+      time: payload.time as UTCTimestamp,
+      open: payload.open,
+      high: payload.high,
+      low: payload.low,
+      close: payload.close,
     });
     volRef.current?.update({
-      time: c.time as UTCTimestamp,
-      value: Number(c.volume) / 1e18,
-      color: candleColor(c),
+      time: payload.time as UTCTimestamp,
+      value: Number(payload.volume) / 1e18,
+      color: candleColor(payload),
     });
   }, interval);
 
@@ -125,10 +152,10 @@ export function PriceChart({ repoId }: { repoId: string }) {
   }, []);
 
   useEffect(() => {
-    if (!data) return;
+    if (!candlesQuery.data) return;
 
     candleRef.current?.setData(
-      data.map((c) => ({
+      candlesQuery.data.map((c) => ({
         time: c.time as UTCTimestamp,
         open: c.open,
         high: c.high,
@@ -138,17 +165,23 @@ export function PriceChart({ repoId }: { repoId: string }) {
     );
 
     volRef.current?.setData(
-      data.map((c) => ({
+      candlesQuery.data.map((c) => ({
         time: c.time as UTCTimestamp,
         value: Number(c.volume) / 1e18,
         color: candleColor(c),
       })),
     );
-  }, [data]);
+  }, [candlesQuery.data]);
+
+  const errorMessage = candlesQuery.error instanceof Error ? candlesQuery.error.message : "Unable to load candles";
 
   return (
     <div style={{ position: "relative", width: "100%", height: 420 }}>
       <div ref={containerRef} style={{ width: "100%", height: 420 }} />
+
+      {candlesQuery.status === "pending" && <Notice>Loading candles...</Notice>}
+      {candlesQuery.status === "error" && <Notice tone="danger" role="alert">{errorMessage}</Notice>}
+      {candlesQuery.status === "success" && candlesQuery.data.length === 0 && <Notice>No candles available.</Notice>}
 
       <div
         style={{

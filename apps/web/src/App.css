@@ -227,6 +227,17 @@
   padding: var(--space-10) var(--space-8) var(--space-16);
 }
 
+.marketplace,
+.route-loading,
+.route-error {
+  width: min(100%, 1126px);
+  margin-inline: auto;
+  min-height: calc(100svh - 73px);
+  display: grid;
+  align-content: start;
+  padding: var(--space-16) var(--space-8);
+}
+
 .gate-card {
   width: min(100%, 760px);
   display: grid;
@@ -394,15 +405,6 @@
   padding: 11px 12px;
 }
 
-.repositories-table .repo-table-row {
-  cursor: pointer;
-}
-
-.repositories-table .repo-table-row:focus-visible {
-  outline: var(--bw-2) solid var(--accent-deep);
-  outline-offset: -2px;
-}
-
 .repositories-table thead th:first-child,
 .repositories-table tbody td:first-child {
   padding-left: 0;
@@ -452,6 +454,27 @@
 .repo-address,
 .repo-date {
   white-space: nowrap;
+}
+
+.repo-details-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--fg-dim);
+  cursor: pointer;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-mono);
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-decoration-thickness: var(--bw);
+  text-underline-offset: 4px;
+}
+
+.repo-details-button:hover,
+.repo-details-button:focus-visible {
+  color: var(--fg);
 }
 
 .repo-drawer-scrim {
@@ -696,6 +719,13 @@
   }
 
   .gate-view {
+    min-height: calc(100svh - 65px);
+    padding: var(--space-8) var(--space-4);
+  }
+
+  .marketplace,
+  .route-loading,
+  .route-error {
     min-height: calc(100svh - 65px);
     padding: var(--space-8) var(--space-4);
   }

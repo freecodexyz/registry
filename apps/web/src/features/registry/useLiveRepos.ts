@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Repo, Sort } from "./repositoryTypes";
+import { isRepo, type Repo, type Sort } from "./repositoryTypes";
 
 export function useLiveRepos(initial: Repo[], options: { q: string; sort: Sort }) {
     const [liveRepos, setLiveRepos] = useState<Repo[]>([]);
@@ -7,7 +7,14 @@ export function useLiveRepos(initial: Repo[], options: { q: string; sort: Sort }
     useEffect(() => {
         const es = new EventSource("/api/repos/stream", { withCredentials: true });
         es.onmessage = (e) => {
-            const row = JSON.parse(e.data) as Repo;
+            let row: unknown;
+            try {
+                row = JSON.parse(e.data) as unknown;
+            } catch {
+                return;
+            }
+
+            if (!isRepo(row)) return;
             setLiveRepos((cur) => [row, ...cur.filter((repo) => repo.repoId !== row.repoId)]);
         };
         return () => es.close();
@@ -32,12 +39,12 @@ export function useLiveRepos(initial: Repo[], options: { q: string; sort: Sort }
         ].filter(Boolean).join(" ").toLowerCase().includes(q);
     }) : repos;
 
-    if (options.sort === "registered_at_asc") return visible.sort((a, b) => a.registeredAt - b.registeredAt);
-    if (options.sort === "stars_desc") return visible.sort((a, b) => {
+    if (options.sort === "registered_at_asc") return [...visible].sort((a, b) => a.registeredAt - b.registeredAt);
+    if (options.sort === "stars_desc") return [...visible].sort((a, b) => {
         const aStars = a.github === "not found" ? -1 : a.github.stars;
         const bStars = b.github === "not found" ? -1 : b.github.stars;
         return bStars - aStars || b.registeredAt - a.registeredAt;
     });
 
-    return visible.sort((a, b) => b.registeredAt - a.registeredAt);
+    return [...visible].sort((a, b) => b.registeredAt - a.registeredAt);
 }

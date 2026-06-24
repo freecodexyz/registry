@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
-import githubLogoUrl from './assets/GitHub_Invertocat_Black.svg'
+import githubLogoUrl from '../../assets/GitHub_Invertocat_Black.svg'
 import { Button, ButtonLink } from '@freecodexyz/ui'
-import { chainLabel, explorerAddressUrl, explorerBlockUrl, explorerTxUrl } from './explorers'
+import { chainLabel, explorerAddressUrl, explorerBlockUrl, explorerTxUrl } from '../../shared/explorers'
 import type { Repo } from './repositoryTypes'
 
 const FULL_DATE = new Intl.DateTimeFormat(undefined, { dateStyle: 'full', timeStyle: 'long' })
@@ -28,10 +28,18 @@ function truncateMiddle(value: string, start = 10, end = 8) {
   return `${value.slice(0, start)}...${value.slice(-end)}`
 }
 
-export function RepositoryDetailsDrawer({ repo, onClose }: { repo: Repo | null; onClose: () => void }) {
-  useEffect(() => {
-    if (!repo) return
+type RepositoryDetailsDrawerProps =
+  | { status: 'closed' }
+  | { status: 'open'; repo: Repo; onClose: () => void }
 
+export function RepositoryDetailsDrawer(props: RepositoryDetailsDrawerProps) {
+  if (props.status === 'closed') return null
+
+  return <OpenRepositoryDetailsDrawer repo={props.repo} onClose={props.onClose} />
+}
+
+function OpenRepositoryDetailsDrawer({ repo, onClose }: { repo: Repo; onClose: () => void }) {
+  useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') onClose()
     }
@@ -39,8 +47,6 @@ export function RepositoryDetailsDrawer({ repo, onClose }: { repo: Repo | null; 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [repo, onClose])
-
-  if (!repo) return null
 
   const github = repo.github === 'not found' ? null : repo.github
   const name = repoNameParts(repo)

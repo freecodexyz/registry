@@ -2,6 +2,9 @@ import { useCallback } from "react";
 import { stringToHex } from "viem";
 import { createSiweMessage } from "viem/siwe";
 import { useAccount, useChainId } from "wagmi";
+import { loadSignInNonce, verifySignInMessage } from "./authApi";
+
+export { SignInVerifyError } from "./authApi";
 
 type SignInProvider = {
     request(args: { method: "personal_sign"; params: [`0x${string}`, `0x${string}`] }): Promise<`0x${string}`>;
@@ -16,13 +19,6 @@ export type PreparedSignInMessage = {
     message: string;
     provider: SignInProvider;
 };
-
-export class SignInVerifyError extends Error {
-    constructor(message = "sign-in failed") {
-        super(message);
-        this.name = "SignInVerifyError";
-    }
-}
 
 export function isPreparedSignInMessageCurrent(
     prepared: PreparedSignInMessage | null,
@@ -56,17 +52,7 @@ export function usePrepareSignInMessage() {
         if (!address) throw new Error("wallet not connected");
         if (!connector) throw new Error("wallet connector missing");
 
-        const requestInit: RequestInit = { credentials: "include" };
-        if (signal) requestInit.signal = signal;
-
-        const nonceResponse = await fetch(
-            `/api/auth/nonce?address=${encodeURIComponent(address)}`,
-            requestInit,
-        );
-        if (!nonceResponse.ok) throw new Error("nonce request failed");
-
-        const { nonce } = await nonceResponse.json() as { nonce?: string };
-        if (!nonce) throw new Error("nonce missing");
+        const nonce = await loadSignInNonce(address, signal);
 
         const domain = window.location.host;
         const uri = window.location.origin;
@@ -103,11 +89,6 @@ export function useSignIn() {
             method: "personal_sign",
             params: [stringToHex(signInMessage.message), signInMessage.address],
         });
-        const res = await fetch(
-            `/api/auth/verify`,
-            { method: "POST", credentials: "include", headers: {"content-type": "application/json"}, body: JSON.stringify({message: signInMessage.message, signature}) },
-        );
-        if (!res.ok) throw new SignInVerifyError();
-        return await res.json() as { ok: true; address: `0x${string}` };
+        return verifySignInMessage({ message: signInMessage.message, signature });
     }, [address, chainId, connector?.id, prepareSignInMessage]);
 }

@@ -1,5 +1,4 @@
 @import '@freecodexyz/ui/styles.css';
-@import './trading-terminal.css';
 
 #root {
   width: min(100%, var(--maxw));

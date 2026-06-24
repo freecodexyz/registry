@@ -1,5 +1,5 @@
 import { GateAccessButton } from './GateAccessButton'
-import { PointCloud } from './PointCloud'
+import { PointCloud } from '../../shared/visuals/PointCloud'
 
 export function GateView() {
   return (
