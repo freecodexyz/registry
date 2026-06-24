@@ -8,16 +8,20 @@ import { generateNonce, SiweMessage } from "siwe";
 import secureSession from "@fastify/secure-session";
 import { randomBytes } from 'node:crypto'
 import { fetchOwnerUsername, fetchRepoMetaData, getGhClient, RepoMetaData } from "./github";
-import { getMeta, insertRepo, listRepos, upsertMeta, db, type GithubMetaRow, type RepoRow } from "./db";
+import { getMeta, insertRepo, listRepos, upsertMeta, db, type GithubMetaRow, type MarketRow, type RepoRow } from "./db";
 import { FastifySSEPlugin } from "fastify-sse-v2";
 import { registryEvents } from "./events";
 import rateLimit from "@fastify/rate-limit";
 import { registerCandles } from "./candles";
+import { registerDepth } from "./depth";
+import { registerWs } from "./ws";
 
 const APP_NAME                      = "registry-api";
 const RIK_ADDRESS                   = process.env.CONTRACT_ADDRESS as `0x${string}`;
 const RPC_URL                       = (!process.env.RPC_URL || process.env.RPC_URL === "") ? "https://base-sepolia-rpc.publicnode.com" : process.env.RPC_URL;
-const DEFAULT_LIST_BLOCK_RANGE      = 2000n;
+const BASE_SEPOLIA_STATE_VIEW       = "0x571291b572ed32ce6751a2cb2486ebee8defb9b4";
+const STATE_VIEW                    = (!process.env.STATE_VIEW || process.env.STATE_VIEW === "") ? BASE_SEPOLIA_STATE_VIEW : process.env.STATE_VIEW as `0x${string}`;
+const DEFAULT_LIST_BLOCK_RANGE      = 100n;
 const ALLOWED_ORIGINS               = ["http://localhost:5173"];
 const SIWE_DOMAIN                   = (!process.env.SIWE_DOMAIN || process.env.SIWE_DOMAIN === "") ? "localhost:5173" : process.env.SIWE_DOMAIN;
 const SESSION_KEY                   = (!process.env.SESSION_KEY || process.env.SESSION_KEY === "") ? randomBytes(32) : process.env.SESSION_KEY;
@@ -77,6 +81,23 @@ type RepoPayload = {
 };
 type RepoStreamPayload = RepoPayload;
 type RepoWithMetaRow = RepoRow & Pick<GithubMetaRow, "full_name" | "description" | "language" | "stars" | "html_url" | "owner_name">;
+type MarketWithMetaRow = MarketRow & Pick<GithubMetaRow, "full_name">;
+type MarketPayload = {
+    repoId: string;
+    asset: `0x${string}`;
+    symbol: string;
+    poolId: `0x${string}`;
+    hook: `0x${string}`;
+    launchedAt: number;
+    launcher: `0x${string}`;
+    poolKey: {
+        currency0: `0x${string}`;
+        currency1: `0x${string}`;
+        fee: number;
+        tickSpacing: number;
+        hooks: `0x${string}`;
+    };
+};
 type Sort = "registered_at_desc" | "stars_desc" | "registered_at_asc";
 
 const repoCache = new Map<string, Cache<RepoGithubCache>>();
@@ -236,9 +257,74 @@ app.get("/api/repos", async (req, reply) => {
     return reply.type("application/json; charset=utf-8").send({ repos, nextCursor });
 });
 
+app.get("/api/markets", async () => {
+    const rows = db.prepare(`
+        SELECT mk.repo_id, mk.asset, mk.hook, mk.pool_id, mk.currency0, mk.currency1,
+               mk.fee, mk.tick_spacing, mk.launched_at, mk.launcher, meta.full_name
+        FROM markets mk
+        LEFT JOIN github_meta meta ON meta.repo_id = mk.repo_id
+        WHERE mk.currency0 IS NOT NULL
+          AND mk.currency1 IS NOT NULL
+          AND mk.fee IS NOT NULL
+          AND mk.tick_spacing IS NOT NULL
+        ORDER BY mk.launched_at DESC, mk.repo_id DESC
+    `).all() as MarketWithMetaRow[];
+
+    return { markets: rows.map(marketPayloadFromRow) };
+});
+
+app.get<{ Params: { repoId: string } }>("/api/market/:repoId", async (req) => {
+    const row = db.prepare(`
+        SELECT mk.repo_id, mk.asset, mk.hook, mk.pool_id, mk.currency0, mk.currency1,
+               mk.fee, mk.tick_spacing, mk.launched_at, mk.launcher, meta.full_name
+        FROM markets mk
+        LEFT JOIN github_meta meta ON meta.repo_id = mk.repo_id
+        WHERE mk.repo_id = ?
+          AND mk.currency0 IS NOT NULL
+          AND mk.currency1 IS NOT NULL
+          AND mk.fee IS NOT NULL
+          AND mk.tick_spacing IS NOT NULL
+    `).get(req.params.repoId) as MarketWithMetaRow | undefined;
+
+    if (!row) throw httpErrors.notFound("market not found");
+
+    return { market: marketPayloadFromRow(row) };
+});
+
+app.get<{
+    Params: { repoId: string };
+    Querystring: { limit?: number };
+}>("/api/market/:repoId/trades", async (req) => {
+    const limitRaw = Number(req.query.limit ?? 500);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 1000) : 500;
+    const rows = db.prepare(`
+        SELECT ts,
+               amount0,
+               amount1,
+               POW(CAST(sqrtPriceX96 AS REAL) / POW(2.0, 96), 2) AS price
+        FROM trades
+        WHERE repo_id = ?
+        ORDER BY ts DESC, block_number DESC, log_index DESC
+        LIMIT ?
+    `).all(req.params.repoId, limit) as { ts: number; amount0: string; amount1: string; price: number }[];
+
+    return rows.map((row) => {
+        const amount0 = BigInt(row.amount0);
+        const amount1 = BigInt(row.amount1);
+        const size = amount1 < 0n ? -amount1 : amount1;
+
+        return {
+            ts: row.ts,
+            price: row.price,
+            size: size.toString(),
+            side: amount0 < 0n ? "buy" : "sell",
+        };
+    });
+});
+
 app.get("/", async () => ({
     name: APP_NAME,
-    endpoints: ["/api/repos", "/api/auth/nonce", "/api/auth/verify"],
+    endpoints: ["/api/repos", "/api/markets", "/api/auth/nonce", "/api/auth/verify"],
 }));
 
 app.get<{ Querystring: { address?: string } }>("/api/auth/nonce", async(req) => {
@@ -329,6 +415,11 @@ app.addHook("preHandler", async (req, _) => {
 });
 
 await app.register(registerCandles);
+await app.register(registerDepth);
+await registerWs(app, registryEvents, async (req) => {
+    const address = req.session.get("address");
+    return address ? await checkGate(address) : false;
+});
 
 function readMessage(message: unknown): string {
     if (typeof message !== "string" || !message) throw httpErrors.badRequest("message is required");
@@ -401,6 +492,36 @@ function repoPayloadFromRow(row: RepoWithMetaRow): RepoStreamPayload {
     };
 }
 
+function marketPayloadFromRow(row: MarketWithMetaRow): MarketPayload {
+    if (row.currency0 == null || row.currency1 == null || row.fee == null || row.tick_spacing == null) {
+        throw new Error(`market ${row.repo_id} is missing pool key data`);
+    }
+
+    return {
+        repoId: row.repo_id,
+        asset: row.asset as `0x${string}`,
+        symbol: marketSymbolFromRow(row),
+        poolId: row.pool_id as `0x${string}`,
+        hook: row.hook as `0x${string}`,
+        launchedAt: row.launched_at,
+        launcher: row.launcher as `0x${string}`,
+        poolKey: {
+            currency0: row.currency0 as `0x${string}`,
+            currency1: row.currency1 as `0x${string}`,
+            fee: row.fee,
+            tickSpacing: row.tick_spacing,
+            hooks: row.hook as `0x${string}`,
+        },
+    };
+}
+
+function marketSymbolFromRow(row: Pick<MarketWithMetaRow, "full_name" | "repo_id">): string {
+    const fullName = row.full_name?.trim();
+    if (!fullName) return `RIK-${row.repo_id}`;
+
+    return fullName.split("/").at(-1)?.slice(0, 16).toUpperCase() || `RIK-${row.repo_id}`;
+}
+
 if(!SHOULD_RUN_INDEXER) await app.listen({ port: 3000, host: "0.0.0.0" });
 
-export {client, RepoRegisteredEvent, MarketLaunchedEvent, SwapEvent, RIK_ADDRESS, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID, LAUNCHER_ADDRESS, V4_POOL_MANAGER};
+export {client, RepoRegisteredEvent, MarketLaunchedEvent, SwapEvent, RIK_ADDRESS, STATE_VIEW, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID, LAUNCHER_ADDRESS, V4_POOL_MANAGER};
