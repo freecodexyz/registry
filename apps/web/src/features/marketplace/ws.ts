@@ -1,8 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 
 let socket: WebSocket | null = null;
 const listeners = new Map<string, Set<(p: unknown) => void>>();
 let reconnectDelay = 250;
+
+export const MARKET_LIVE_REFETCH_INTERVAL_MS = 12_000;
 
 function ensureSocket() {
     if (socket && socket.readyState <= WebSocket.OPEN) return socket;
@@ -35,16 +37,16 @@ export function useSubscription<T>(
     cb: (p: T) => void,
     interval?: string,
 ) {
-    const callbackRef = useRef(cb);
-
-    useEffect(() => {
-        callbackRef.current = cb;
-    }, [cb]);
+    const [, setVersion] = useState(0);
+    const onPayload = useEffectEvent((payload: unknown) => {
+        cb(payload as T);
+        setVersion((version) => version + 1);
+    });
 
     useEffect(() => {
         const key = `${channel}:${market}${interval ? `:${interval}` : ""}`;
         const set = listeners.get(key) ?? new Set<(p: unknown) => void>();
-        const listener = (payload: unknown) => callbackRef.current(payload as T);
+        const listener = (payload: unknown) => onPayload(payload);
 
         set.add(listener);
         listeners.set(key, set);

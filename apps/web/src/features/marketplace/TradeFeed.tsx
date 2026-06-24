@@ -4,7 +4,7 @@ import { List } from 'react-window'
 import type { RowComponentProps } from 'react-window'
 import { formatUnits } from 'viem'
 import { explorerTxUrl } from '../../shared/explorers'
-import { useSubscription } from './ws'
+import { MARKET_LIVE_REFETCH_INTERVAL_MS, useSubscription } from './ws'
 
 const DEFAULT_TRADE_LIMIT = 5_000
 const DEFAULT_LIST_HEIGHT = 360
@@ -253,6 +253,7 @@ export function TradeFeed({ market, limit = DEFAULT_TRADE_LIMIT, height = DEFAUL
   const tradesQuery = useQuery({
     queryKey: tradeQueryKey,
     queryFn: ({ signal }) => loadTrades(market.repoId, limit, signal),
+    refetchInterval: MARKET_LIVE_REFETCH_INTERVAL_MS,
   })
 
   useSubscription<unknown>('trades', market.repoId, (payload) => {

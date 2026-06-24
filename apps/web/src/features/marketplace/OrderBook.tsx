@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, Notice } from '@freecodexyz/ui'
 import { formatUnits } from 'viem'
-import { useSubscription } from './ws'
+import { MARKET_LIVE_REFETCH_INTERVAL_MS, useSubscription } from './ws'
 
 const DEFAULT_TOKEN_DECIMALS = 18
 const PRICE_FORMAT = new Intl.NumberFormat('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
@@ -245,6 +245,7 @@ export function OrderBook({ market }: OrderBookProps) {
   const depthQuery = useQuery({
     queryKey: depthQueryKey,
     queryFn: ({ signal }) => loadDepthBook(market.repoId, signal),
+    refetchInterval: MARKET_LIVE_REFETCH_INTERVAL_MS,
   })
 
   useSubscription<unknown>('depth', market.repoId, (payload) => {
