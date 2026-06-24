@@ -1,13 +1,9 @@
-import { createPublicClient, http } from "viem";
-import { baseSepolia } from "viem/chains";
+import type { FastifyInstance } from "fastify";
+import { httpErrors } from "@fastify/sensible";
 import { stateViewAbi } from "./abi/stateView";
-import { STATE_VIEW, RPC_URL } from "./addresses";
+import { client, STATE_VIEW } from "./index";
+import { db, type MarketRow } from "./db";
 
-const client = createPublicClient({
-    chain: baseSepolia,
-    transport: http(RPC_URL),
-    batch: { multicall: true },
-});
 const Q96 = 2n ** 96n;
 
 const tickToPrice = (tick: number) => Math.pow(1.0001, tick);
@@ -121,3 +117,18 @@ const toStr = ({ price, size, cumulative }: DepthLevel) => ({
     size: size.toString(),
     cumulative: cumulative.toString(),
 });
+
+export async function registerDepth(app: FastifyInstance) {
+    app.get<{ Params: { repoId: string } }>("/api/market/:repoId/depth", async (req) => {
+        const row = db.prepare(`
+            SELECT pool_id, tick_spacing
+            FROM markets
+            WHERE repo_id = ?
+        `).get(req.params.repoId) as Pick<MarketRow, "pool_id" | "tick_spacing"> | undefined;
+
+        if (!row) throw httpErrors.notFound("market not found");
+        if (row.tick_spacing == null) throw httpErrors.conflict("market pool key is incomplete");
+
+        return buildBook(row.pool_id as `0x${string}`, row.tick_spacing);
+    });
+}
