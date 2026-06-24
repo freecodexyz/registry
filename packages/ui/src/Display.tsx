@@ -25,6 +25,10 @@ export function ScreenReaderOnly({ className, ...props }: HTMLAttributes<HTMLSpa
   return <span className={cx('fcf-sr-only', className)} {...props} />
 }
 
+export function Skeleton({ className, 'aria-hidden': ariaHidden = true, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div aria-hidden={ariaHidden} className={cx('fcf-skeleton', className)} {...props} />
+}
+
 export function Status({ tone = 'live', className, ...props }: HTMLAttributes<HTMLSpanElement> & { tone?: 'live' | 'idle' | 'danger' }) {
   return <span className={cx('fcf-status', tone !== 'live' && `fcf-status--${tone}`, className)} {...props} />
 }
