@@ -20,7 +20,7 @@ const DEFAULT_INTERVAL: CandleInterval = '1h'
 const DEFAULT_LOOKBACK_SECONDS = 60 * 60 * 24 * 45
 const DEFAULT_TOKEN_DECIMALS = 18
 const MAX_CANDLE_POINTS = 1_500
-const PRICE_SCALE_MIN_WIDTH = 86
+const PRICE_SCALE_MIN_WIDTH = 72
 
 type MarketCandle = {
   time: number;
@@ -305,8 +305,8 @@ export function PriceChart({ market, interval = DEFAULT_INTERVAL }: PriceChartPr
         borderColor: grid,
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: 10,
-        barSpacing: 6,
+        rightOffset: 6,
+        barSpacing: 5,
       },
       crosshair: {
         mode: CrosshairMode.Normal,
@@ -336,7 +336,7 @@ export function PriceChart({ market, interval = DEFAULT_INTERVAL }: PriceChartPr
       lastValueVisible: false,
     }, 1)
 
-    chart.panes()[1]?.setHeight(118)
+    chart.panes()[1]?.setHeight(84)
 
     chartRef.current = chart
     candleSeriesRef.current = candleSeries

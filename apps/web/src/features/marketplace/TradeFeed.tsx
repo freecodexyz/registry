@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, Notice } from '@freecodexyz/ui'
+import { AutoSizer } from 'react-virtualized-auto-sizer'
 import { List } from 'react-window'
 import type { RowComponentProps } from 'react-window'
 import { formatUnits } from 'viem'
@@ -7,8 +8,7 @@ import { explorerTxUrl } from '../../shared/explorers'
 import { MARKET_LIVE_REFETCH_INTERVAL_MS, useSubscription } from './ws'
 
 const DEFAULT_TRADE_LIMIT = 5_000
-const DEFAULT_LIST_HEIGHT = 360
-const TRADE_ROW_HEIGHT = 34
+const TRADE_ROW_HEIGHT = 24
 const PRICE_FORMAT = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 8 })
 const SIZE_FORMAT = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 8 })
 
@@ -35,7 +35,6 @@ export type TradeFeedMarket = {
 type TradeFeedProps = {
   market: TradeFeedMarket;
   limit?: number;
-  height?: number;
 }
 
 type ApiTradePayload = {
@@ -246,7 +245,7 @@ function TradeFeedRow({ index, style, ariaAttributes, trades, chainId, baseToken
   )
 }
 
-export function TradeFeed({ market, limit = DEFAULT_TRADE_LIMIT, height = DEFAULT_LIST_HEIGHT }: TradeFeedProps) {
+export function TradeFeed({ market, limit = DEFAULT_TRADE_LIMIT }: TradeFeedProps) {
   const queryClient = useQueryClient()
   const tradeQueryKey = ['trades', market.repoId, limit] as const
   const baseTokenDecimals = market.baseTokenDecimals ?? 18
@@ -279,21 +278,33 @@ export function TradeFeed({ market, limit = DEFAULT_TRADE_LIMIT, height = DEFAUL
         <span role="columnheader">Time</span>
       </div>
 
-      {tradesQuery.status === 'pending' && <Notice className="trade-feed__state">Loading trades...</Notice>}
-      {tradesQuery.status === 'error' && !hasRows && <Notice className="trade-feed__state" tone="danger" role="alert">{errorMessage}</Notice>}
-      {tradesQuery.status === 'success' && !hasRows && <Notice className="trade-feed__state">No trades available.</Notice>}
+      <div className="trade-feed__body">
+        {tradesQuery.status === 'pending' && <Notice className="trade-feed__state">Loading trades...</Notice>}
+        {tradesQuery.status === 'error' && !hasRows && <Notice className="trade-feed__state" tone="danger" role="alert">{errorMessage}</Notice>}
+        {tradesQuery.status === 'success' && !hasRows && <Notice className="trade-feed__state">No trades available.</Notice>}
 
-      {hasRows && (
-        <List
-          className="trade-feed__list"
-          rowComponent={TradeFeedRow}
-          rowCount={trades.length}
-          rowHeight={TRADE_ROW_HEIGHT}
-          rowProps={{ trades, chainId: market.chainId, baseTokenDecimals }}
-          overscanCount={8}
-          style={{ height }}
-        />
-      )}
+        {hasRows && (
+          <AutoSizer
+            renderProp={({ height, width }) => {
+              const listHeight = height ?? 0
+              const listWidth = width ?? 0
+              if (listHeight <= 0 || listWidth <= 0) return null
+
+              return (
+                <List
+                  className="trade-feed__list"
+                  rowComponent={TradeFeedRow}
+                  rowCount={trades.length}
+                  rowHeight={TRADE_ROW_HEIGHT}
+                  rowProps={{ trades, chainId: market.chainId, baseTokenDecimals }}
+                  overscanCount={8}
+                  style={{ height: listHeight, width: listWidth }}
+                />
+              )
+            }}
+          />
+        )}
+      </div>
     </Card>
   )
 }
