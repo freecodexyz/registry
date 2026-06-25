@@ -270,7 +270,6 @@ export function TradeFeed({ market, limit = DEFAULT_TRADE_LIMIT }: TradeFeedProp
     <Card className="trade-feed" aria-label="Trades feed">
       <header className="trade-feed__top">
         <h2>Trades</h2>
-        <span>{market.repoId}</span>
       </header>
       <div className="trade-feed__columns" role="row">
         <span role="columnheader">Price</span>

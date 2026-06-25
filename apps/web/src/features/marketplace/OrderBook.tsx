@@ -261,7 +261,6 @@ export function OrderBook({ market }: OrderBookProps) {
     <Card className="order-book" aria-label="Order book">
       <header className="order-book__top">
         <h2>Order Book</h2>
-        <span>{market.repoId}</span>
       </header>
       <div className="order-book__table" role="table" aria-label={`${market.baseTokenSymbol} order book`}>
         <OrderBookColumns baseTokenSymbol={market.baseTokenSymbol} />
