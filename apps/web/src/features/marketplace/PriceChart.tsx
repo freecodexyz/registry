@@ -170,7 +170,6 @@ function PriceChartLegend({ market, interval, state }: { market: PriceChartMarke
       <span className="price-chart__market">
         <span>{market.baseTokenSymbol} Market Cap</span>
         <span>{interval}</span>
-        <span>ETH spot converted</span>
       </span>
       {candle ? (
         <dl className={`price-chart__ohlc price-chart__ohlc--${move}`}>
