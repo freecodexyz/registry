@@ -15,6 +15,9 @@ export type PriceMovement = {
 const USD_PRICE_FORMAT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumSignificantDigits: 8 })
 const USD_CHANGE_FORMAT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 4, maximumFractionDigits: 4 })
 const USD_COMPACT_FORMAT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 2 })
+const USD_FULL_FORMAT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
+const COMPACT_PRECISE_FORMAT = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
+const COMPACT_RULER_FORMATS = Array.from({ length: 7 }, (_, maximumFractionDigits) => new Intl.NumberFormat('en-US', { maximumFractionDigits }))
 const TOKEN_FIXED_FORMAT = new Intl.NumberFormat('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
 const TRADE_SIZE_FORMAT = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 8 })
 const TOKEN_DISPLAY_FORMAT = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -71,6 +74,53 @@ export function formatChartUsdPrice(value: number) {
   if (absolute >= 1) return value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 3, maximumFractionDigits: 3 })
 
   return USD_PRICE_FORMAT.format(value)
+}
+
+export function formatMarketCapUsd(value: number) {
+  return Number.isFinite(value) ? USD_FULL_FORMAT.format(value) : '-'
+}
+
+function formatCompactMarketCap(value: number, formatter: Intl.NumberFormat) {
+  if (!Number.isFinite(value)) return '-'
+
+  const absolute = Math.abs(value)
+  const sign = value < 0 ? '-' : ''
+  if (absolute >= 1_000_000_000) return `${sign}${formatter.format(absolute / 1_000_000_000)}b`
+  if (absolute >= 1_000_000) return `${sign}${formatter.format(absolute / 1_000_000)}m`
+  if (absolute >= 1_000) return `${sign}${formatter.format(absolute / 1_000)}k`
+
+  return `${sign}${formatter.format(absolute)}`
+}
+
+function hasDuplicateLabels(labels: readonly string[]) {
+  return new Set(labels).size !== labels.length
+}
+
+function withoutDuplicateLabels(labels: readonly string[]) {
+  const seen = new Set<string>()
+
+  return labels.map((label) => {
+    if (!seen.has(label)) {
+      seen.add(label)
+      return label
+    }
+
+    return ''
+  })
+}
+
+export function formatMarketCapRulerValues(values: readonly number[]) {
+  for (const formatter of COMPACT_RULER_FORMATS) {
+    const labels = values.map((value) => formatCompactMarketCap(value, formatter))
+    if (!hasDuplicateLabels(labels)) return labels
+  }
+
+  const preciseLabels = values.map(formatMarketCapPointerValue)
+  return hasDuplicateLabels(preciseLabels) ? withoutDuplicateLabels(preciseLabels) : preciseLabels
+}
+
+export function formatMarketCapPointerValue(value: number) {
+  return formatCompactMarketCap(value, COMPACT_PRECISE_FORMAT)
 }
 
 export function formatCompactUsd(value: number) {

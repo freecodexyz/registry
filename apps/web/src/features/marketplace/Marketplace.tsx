@@ -114,6 +114,8 @@ export function Marketplace() {
                     repoId: activeMarket.repoId,
                     baseTokenSymbol: activeMarket.symbol,
                     quoteTokenSymbol: demoMarket.quoteTokenSymbol,
+                    tokenAddress: activeMarket.asset,
+                    chainId: baseSepolia.id,
                   }}
                   ethUsdPriceState={ethUsdPriceState}
                 />

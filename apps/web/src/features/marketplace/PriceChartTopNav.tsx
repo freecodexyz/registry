@@ -1,5 +1,4 @@
-import { erc20Abi, type Address } from 'viem'
-import { useReadContract } from 'wagmi'
+import type { Address } from 'viem'
 import { chainLabel, explorerAddressUrl } from '../../shared/explorers'
 import type { EthUsdPriceState } from './marketPrice'
 import {
@@ -19,8 +18,7 @@ import {
   priceMovementFromCandles,
   type MarketMove,
 } from './marketNumbers'
-
-const SUPPLY_REFETCH_INTERVAL_MS = 60_000
+import { useMarketToken } from './marketToken'
 
 type MetricValueState =
   | { status: 'loading' }
@@ -105,21 +103,6 @@ function unavailableMarketMetric(candleState: MarketCandleState, ethUsdPriceStat
     case 'ready':
       return null
   }
-}
-
-function parseTokenDecimals(value: unknown): number | null {
-  if (typeof value !== 'number') return null
-  if (!Number.isInteger(value) || value < 0) return null
-
-  return value
-}
-
-function parseTokenSupply(value: unknown): bigint | null {
-  return typeof value === 'bigint' ? value : null
-}
-
-function errorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback
 }
 
 function truncateAddress(address: Address) {
@@ -223,24 +206,9 @@ function usePriceChartTopNavState({ market, ethUsdPriceState }: PriceChartTopNav
     lookbackSeconds: MARKET_DAY_LOOKBACK_SECONDS,
   })
   const displayState = stateFromUsdConversion(candleState, ethUsdPriceState)
-  const totalSupplyQuery = useReadContract({
-    address: market.tokenAddress,
-    abi: erc20Abi,
-    functionName: 'totalSupply',
-    chainId: market.chainId,
-    query: { refetchInterval: SUPPLY_REFETCH_INTERVAL_MS },
-  })
-  const decimalsQuery = useReadContract({
-    address: market.tokenAddress,
-    abi: erc20Abi,
-    functionName: 'decimals',
-    chainId: market.chainId,
-    query: { refetchInterval: SUPPLY_REFETCH_INTERVAL_MS },
-  })
+  const tokenState = useMarketToken({ tokenAddress: market.tokenAddress, chainId: market.chainId })
   const unavailableMetric = unavailableMarketMetric(candleState, ethUsdPriceState, displayState)
   const movement = unavailableMetric == null && displayState.status === 'ready' ? priceMovementFromCandles(displayState.candles) : null
-  const decimals = parseTokenDecimals(decimalsQuery.data)
-  const totalSupply = parseTokenSupply(totalSupplyQuery.data)
 
   if (unavailableMetric != null || movement == null) {
     const metric = unavailableMetric ?? emptyMetric('No 24h price data available')
@@ -261,23 +229,19 @@ function usePriceChartTopNavState({ market, ethUsdPriceState }: PriceChartTopNav
   let volume: MetricValueState = loadingMetric()
   let marketCap: MetricValueState = loadingMetric()
 
-  if (decimalsQuery.status === 'error') {
-    volume = errorMetric(errorMessage(decimalsQuery.error, 'Unable to load token decimals'))
+  if (tokenState.decimals.status === 'error') {
+    volume = errorMetric(tokenState.decimals.message)
     marketCap = volume
-  } else if (decimalsQuery.status === 'success' && decimals == null) {
-    volume = errorMetric('Token decimals response is invalid')
-    marketCap = volume
-  } else if (decimals != null) {
+  } else if (tokenState.decimals.status === 'ready') {
+    const decimals = tokenState.decimals.decimals
     const volumeUsd = displayState.status === 'ready' ? candleVolumeUsd(displayState.candles, decimals) : null
     const formattedVolume = volumeUsd == null ? null : formatCompactUsd(volumeUsd)
     volume = formattedVolume == null ? emptyMetric('No 24h volume available') : readyMetric(formattedVolume, { ariaLabel: `24 hour volume ${formattedVolume}` })
 
-    if (totalSupplyQuery.status === 'error') {
-      marketCap = errorMetric(errorMessage(totalSupplyQuery.error, 'Unable to load token supply'))
-    } else if (totalSupplyQuery.status === 'success' && totalSupply == null) {
-      marketCap = errorMetric('Token supply response is invalid')
-    } else if (totalSupply != null) {
-      const marketCapValue = marketCapUsd(totalSupply, decimals, movement.latestPrice)
+    if (tokenState.supply.status === 'error') {
+      marketCap = errorMetric(tokenState.supply.message)
+    } else if (tokenState.supply.status === 'ready') {
+      const marketCapValue = marketCapUsd(tokenState.supply.totalSupply, decimals, movement.latestPrice)
       const formattedMarketCap = marketCapValue == null ? null : formatCompactUsd(marketCapValue)
       marketCap = formattedMarketCap == null ? emptyMetric('Market cap unavailable') : readyMetric(formattedMarketCap, { ariaLabel: `Market cap ${formattedMarketCap}` })
     }

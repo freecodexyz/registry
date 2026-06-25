@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import type { Address } from 'viem'
 import {
   CandlestickSeries,
   ColorType,
@@ -23,21 +24,48 @@ import {
   type MarketCandleState,
 } from './marketCandles'
 import {
-  DEFAULT_TOKEN_DECIMALS,
-  formatChartUsdPrice,
+  formatMarketCapPointerValue,
+  formatMarketCapRulerValues,
+  formatMarketCapUsd,
   formatSignedPercent,
   formatSignedUsdChange,
-  formatUsdPrice,
   movementFromChange,
   normalizedTokenVolume,
   priceMovement,
+  tokenAmountFromBaseUnits,
 } from './marketNumbers'
-const PRICE_SCALE_MIN_WIDTH = 88
+import { useMarketToken, type MarketTokenState } from './marketToken'
+
+const PRICE_SCALE_MIN_WIDTH = 148
+
+type ChartTheme = {
+  up: string;
+  down: string;
+  volumeUp: string;
+  volumeDown: string;
+  background: string;
+  grid: string;
+  text: string;
+  crosshair: string;
+}
+
+const DEFAULT_CHART_THEME: ChartTheme = {
+  up: '#00c565',
+  down: '#ff4d57',
+  volumeUp: 'rgba(0, 197, 101, 0.36)',
+  volumeDown: 'rgba(255, 77, 87, 0.36)',
+  background: '#071009',
+  grid: 'rgba(122, 143, 151, 0.08)',
+  text: '#aeb8c2',
+  crosshair: 'rgba(204, 216, 224, 0.56)',
+}
 
 export type PriceChartMarket = {
   repoId: string;
   baseTokenSymbol: string;
   quoteTokenSymbol: string;
+  tokenAddress: Address;
+  chainId: number;
   baseTokenDecimals?: number;
 }
 
@@ -65,6 +93,72 @@ function toVolumeData(candle: MarketCandle, decimals: number, upColor: string, d
   }
 }
 
+function scaleMarketCapValue(value: number, supply: number): number | null {
+  const marketCap = value * supply
+
+  return Number.isFinite(marketCap) && marketCap >= 0 ? marketCap : null
+}
+
+function toMarketCapCandle(candle: MarketCandle, supply: number): MarketCandle | null {
+  const open = scaleMarketCapValue(candle.open, supply)
+  const high = scaleMarketCapValue(candle.high, supply)
+  const low = scaleMarketCapValue(candle.low, supply)
+  const close = scaleMarketCapValue(candle.close, supply)
+
+  if (open == null || high == null || low == null || close == null) return null
+
+  return { ...candle, open, high, low, close }
+}
+
+function toMarketCapCandles(candles: MarketCandle[], totalSupply: bigint, decimals: number): MarketCandle[] | null {
+  const supply = tokenAmountFromBaseUnits(totalSupply, decimals)
+  if (supply == null || supply < 0) return null
+
+  const marketCapCandles: MarketCandle[] = []
+  for (const candle of candles) {
+    const marketCapCandle = toMarketCapCandle(candle, supply)
+    if (!marketCapCandle) return null
+
+    marketCapCandles.push(marketCapCandle)
+  }
+
+  return marketCapCandles
+}
+
+function stateFromMarketCapConversion(displayState: MarketCandleState, tokenState: MarketTokenState): MarketCandleState {
+  if (displayState.status !== 'ready') return displayState
+  if (tokenState.decimals.status === 'loading' || tokenState.supply.status === 'loading') return { status: 'loading' }
+  if (tokenState.decimals.status === 'error') return { status: 'error', message: tokenState.decimals.message }
+  if (tokenState.supply.status === 'error') return { status: 'error', message: tokenState.supply.message }
+
+  const candles = toMarketCapCandles(displayState.candles, tokenState.supply.totalSupply, tokenState.decimals.decimals)
+  if (!candles) return { status: 'error', message: 'Unable to convert price history to market cap' }
+  if (candles.length === 0) return { status: 'empty' }
+
+  return { status: 'ready', candles }
+}
+
+function readChartTheme(container: HTMLElement): ChartTheme {
+  return {
+    up: chartColor(container, '--chart-up', DEFAULT_CHART_THEME.up),
+    down: chartColor(container, '--chart-down', DEFAULT_CHART_THEME.down),
+    volumeUp: chartColor(container, '--chart-volume-up', DEFAULT_CHART_THEME.volumeUp),
+    volumeDown: chartColor(container, '--chart-volume-down', DEFAULT_CHART_THEME.volumeDown),
+    background: chartColor(container, '--chart-bg', DEFAULT_CHART_THEME.background),
+    grid: chartColor(container, '--chart-grid', DEFAULT_CHART_THEME.grid),
+    text: chartColor(container, '--chart-text', DEFAULT_CHART_THEME.text),
+    crosshair: chartColor(container, '--chart-crosshair', DEFAULT_CHART_THEME.crosshair),
+  }
+}
+
+function priceLineColor(candle: MarketCandle | null, theme: ChartTheme) {
+  return candle && candle.close >= candle.open ? theme.up : theme.down
+}
+
+function formatMarketCapTickmarks(values: number[]) {
+  return formatMarketCapRulerValues(values)
+}
+
 function PriceChartLegend({ market, interval, state }: { market: PriceChartMarket; interval: CandleInterval; state: MarketCandleState }) {
   const candle = state.status === 'ready' ? state.candles.at(-1) : null
   const previous = state.status === 'ready' ? state.candles.at(-2) : null
@@ -74,16 +168,16 @@ function PriceChartLegend({ market, interval, state }: { market: PriceChartMarke
   return (
     <div className="price-chart__legend" aria-live="polite">
       <span className="price-chart__market">
-        <span>{market.baseTokenSymbol}/USD</span>
+        <span>{market.baseTokenSymbol} Market Cap</span>
         <span>{interval}</span>
         <span>ETH spot converted</span>
       </span>
       {candle ? (
         <dl className={`price-chart__ohlc price-chart__ohlc--${move}`}>
-          <div><dt>O</dt><dd>{formatUsdPrice(candle.open)}</dd></div>
-          <div><dt>H</dt><dd>{formatUsdPrice(candle.high)}</dd></div>
-          <div><dt>L</dt><dd>{formatUsdPrice(candle.low)}</dd></div>
-          <div><dt>C</dt><dd>{formatUsdPrice(candle.close)}</dd></div>
+          <div><dt>O</dt><dd>{formatMarketCapUsd(candle.open)}</dd></div>
+          <div><dt>H</dt><dd>{formatMarketCapUsd(candle.high)}</dd></div>
+          <div><dt>L</dt><dd>{formatMarketCapUsd(candle.low)}</dd></div>
+          <div><dt>C</dt><dd>{formatMarketCapUsd(candle.close)}</dd></div>
           {movement && (
             <div className="price-chart__change">
               <dt>CHG</dt>
@@ -98,7 +192,7 @@ function PriceChartLegend({ market, interval, state }: { market: PriceChartMarke
   )
 }
 
-function PriceChartStatus({ candleState, ethUsdPriceState, displayState }: { candleState: MarketCandleState; ethUsdPriceState: EthUsdPriceState; displayState: MarketCandleState }) {
+function PriceChartStatus({ candleState, ethUsdPriceState, chartState }: { candleState: MarketCandleState; ethUsdPriceState: EthUsdPriceState; chartState: MarketCandleState }) {
   let status: Exclude<MarketCandleState['status'], 'ready'> | null = null
   let label = ''
 
@@ -120,12 +214,15 @@ function PriceChartStatus({ candleState, ethUsdPriceState, displayState }: { can
   } else if (ethUsdPriceState.status === 'empty') {
     status = 'empty'
     label = 'No ETH-USD spot price available.'
-  } else if (displayState.status === 'error') {
+  } else if (chartState.status === 'loading') {
+    status = 'loading'
+    label = 'Loading market cap scale...'
+  } else if (chartState.status === 'error') {
     status = 'error'
-    label = displayState.message
-  } else if (displayState.status === 'empty') {
+    label = chartState.message
+  } else if (chartState.status === 'empty') {
     status = 'empty'
-    label = 'No USD price history available.'
+    label = 'No market cap history available.'
   }
 
   if (!status) return null
@@ -145,65 +242,59 @@ export function PriceChart({ market, ethUsdPriceState, interval = DEFAULT_CANDLE
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
   const fittedDataKeyRef = useRef<string | null>(null)
-  const chartColorsRef = useRef({
-    up: '#00d6b4',
-    down: '#ff4d57',
-    volumeUp: 'rgba(0, 214, 180, 0.36)',
-    volumeDown: 'rgba(255, 77, 87, 0.36)',
-  })
-  const decimals = market.baseTokenDecimals ?? DEFAULT_TOKEN_DECIMALS
+  const lastCandleRef = useRef<MarketCandle | null>(null)
+  const chartThemeRef = useRef(DEFAULT_CHART_THEME)
   const { rawCandles, state: candleState } = useMarketCandles({
     repoId: market.repoId,
     interval,
     lookbackSeconds: DEFAULT_CHART_LOOKBACK_SECONDS,
   })
   const displayState = stateFromUsdConversion(candleState, ethUsdPriceState)
+  const tokenState = useMarketToken({ tokenAddress: market.tokenAddress, chainId: market.chainId })
+  const chartState = stateFromMarketCapConversion(displayState, tokenState)
+  const tokenDecimals = tokenState.decimals.status === 'ready' ? tokenState.decimals.decimals : null
+  const tokenSupply = tokenState.supply.status === 'ready' ? tokenState.supply.totalSupply : null
   const ethUsdPrice = ethUsdPriceState.status === 'ready' ? ethUsdPriceState.usdPrice : null
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
-    const up = chartColor(container, '--chart-up', '#00d6b4')
-    const down = chartColor(container, '--chart-down', '#ff4d57')
-    const volumeUp = chartColor(container, '--chart-volume-up', 'rgba(0, 214, 180, 0.36)')
-    const volumeDown = chartColor(container, '--chart-volume-down', 'rgba(255, 77, 87, 0.36)')
-    const background = chartColor(container, '--chart-bg', '#071113')
-    const grid = chartColor(container, '--chart-grid', 'rgba(122, 143, 151, 0.16)')
-    const text = chartColor(container, '--chart-text', '#aeb8c2')
-    const crosshair = chartColor(container, '--chart-crosshair', 'rgba(204, 216, 224, 0.56)')
-
-    chartColorsRef.current = { up, down, volumeUp, volumeDown }
+    const theme = readChartTheme(container)
+    chartThemeRef.current = theme
 
     const chart = createChart(container, {
       width: container.clientWidth,
       height: container.clientHeight,
       layout: {
-        background: { type: ColorType.Solid, color: background },
-        textColor: text,
+        background: { type: ColorType.Solid, color: theme.background },
+        textColor: theme.text,
         fontFamily: 'Geist Mono, ui-monospace, SFMono-Regular, Menlo, monospace',
         attributionLogo: true,
         panes: {
-          separatorColor: grid,
-          separatorHoverColor: grid,
+          separatorColor: theme.grid,
+          separatorHoverColor: theme.grid,
           enableResize: false,
         },
       },
       grid: {
-        vertLines: { color: grid },
-        horzLines: { color: grid },
+        vertLines: { color: theme.grid },
+        horzLines: { color: theme.grid },
       },
       rightPriceScale: {
         visible: true,
         alignLabels: true,
         entireTextOnly: true,
-        borderColor: grid,
+        borderColor: theme.grid,
+        textColor: theme.text,
+        ticksVisible: true,
+        ensureEdgeTickMarksVisible: true,
         minimumWidth: PRICE_SCALE_MIN_WIDTH,
         scaleMargins: { top: 0.14, bottom: 0.08 },
         tickMarkDensity: 3,
       },
       timeScale: {
-        borderColor: grid,
+        borderColor: theme.grid,
         timeVisible: true,
         secondsVisible: false,
         rightOffset: 6,
@@ -211,27 +302,29 @@ export function PriceChart({ market, ethUsdPriceState, interval = DEFAULT_CANDLE
       },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: { color: crosshair, width: 1, style: LineStyle.Dashed, labelBackgroundColor: background },
-        horzLine: { color: crosshair, width: 1, style: LineStyle.Dashed, labelBackgroundColor: background },
+        vertLine: { color: theme.crosshair, width: 1, style: LineStyle.Dashed, labelBackgroundColor: theme.background },
+        horzLine: { color: theme.crosshair, width: 1, style: LineStyle.Dashed, labelBackgroundColor: theme.background },
       },
       localization: {
-        priceFormatter: formatChartUsdPrice,
+        priceFormatter: formatMarketCapPointerValue,
+        tickmarksPriceFormatter: formatMarketCapTickmarks,
       },
     })
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: up,
-      downColor: down,
+      upColor: theme.up,
+      downColor: theme.down,
       borderVisible: false,
-      wickUpColor: up,
-      wickDownColor: down,
-      priceLineColor: down,
+      wickUpColor: theme.up,
+      wickDownColor: theme.down,
+      priceFormat: { type: 'custom', formatter: formatMarketCapPointerValue, tickmarksFormatter: formatMarketCapTickmarks, minMove: 0.01 },
+      priceLineColor: theme.down,
       priceLineStyle: LineStyle.Dotted,
       priceLineWidth: 1,
       lastValueVisible: true,
     })
     const volumeSeries = chart.addSeries(HistogramSeries, {
-      color: volumeDown,
+      color: theme.volumeDown,
       priceFormat: { type: 'volume' },
       priceLineVisible: false,
       lastValueVisible: false,
@@ -243,6 +336,45 @@ export function PriceChart({ market, ethUsdPriceState, interval = DEFAULT_CANDLE
     candleSeriesRef.current = candleSeries
     volumeSeriesRef.current = volumeSeries
 
+    const applyTheme = () => {
+      const nextTheme = readChartTheme(container)
+      chartThemeRef.current = nextTheme
+
+      chart.applyOptions({
+        layout: {
+          background: { type: ColorType.Solid, color: nextTheme.background },
+          textColor: nextTheme.text,
+          panes: {
+            separatorColor: nextTheme.grid,
+            separatorHoverColor: nextTheme.grid,
+          },
+        },
+        grid: {
+          vertLines: { color: nextTheme.grid },
+          horzLines: { color: nextTheme.grid },
+        },
+        rightPriceScale: {
+          borderColor: nextTheme.grid,
+          textColor: nextTheme.text,
+        },
+        timeScale: {
+          borderColor: nextTheme.grid,
+        },
+        crosshair: {
+          vertLine: { color: nextTheme.crosshair, labelBackgroundColor: nextTheme.background },
+          horzLine: { color: nextTheme.crosshair, labelBackgroundColor: nextTheme.background },
+        },
+      })
+      candleSeries.applyOptions({
+        upColor: nextTheme.up,
+        downColor: nextTheme.down,
+        wickUpColor: nextTheme.up,
+        wickDownColor: nextTheme.down,
+        priceLineColor: priceLineColor(lastCandleRef.current, nextTheme),
+      })
+      volumeSeries.applyOptions({ color: nextTheme.volumeDown })
+    }
+
     const resizeObserver = new ResizeObserver(([entry]) => {
       if (!entry) return
 
@@ -250,8 +382,16 @@ export function PriceChart({ market, ethUsdPriceState, interval = DEFAULT_CANDLE
     })
     resizeObserver.observe(container)
 
+    const themeObserver = new MutationObserver(applyTheme)
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-accent', 'style'] })
+    const accentScope = container.closest('[data-accent]')
+    if (accentScope && accentScope !== document.documentElement) {
+      themeObserver.observe(accentScope, { attributes: true, attributeFilter: ['data-accent', 'style'] })
+    }
+
     return () => {
       resizeObserver.disconnect()
+      themeObserver.disconnect()
       chart.remove()
       chartRef.current = null
       candleSeriesRef.current = null
@@ -260,13 +400,15 @@ export function PriceChart({ market, ethUsdPriceState, interval = DEFAULT_CANDLE
   }, [])
 
   useEffect(() => {
-    const candles = ethUsdPrice == null ? [] : toUsdCandles(rawCandles ?? [], ethUsdPrice) ?? []
-    const lastCandle = candles.at(-1)
-    const colors = chartColorsRef.current
+    const usdCandles = ethUsdPrice == null ? [] : toUsdCandles(rawCandles ?? [], ethUsdPrice) ?? []
+    const candles = tokenSupply == null || tokenDecimals == null ? [] : toMarketCapCandles(usdCandles, tokenSupply, tokenDecimals) ?? []
+    const lastCandle = candles.at(-1) ?? null
+    const theme = chartThemeRef.current
+    lastCandleRef.current = lastCandle
 
     candleSeriesRef.current?.setData(candles.map(toCandlestickData))
-    candleSeriesRef.current?.applyOptions({ priceLineColor: lastCandle && lastCandle.close >= lastCandle.open ? colors.up : colors.down })
-    volumeSeriesRef.current?.setData(candles.map((candle) => toVolumeData(candle, decimals, colors.volumeUp, colors.volumeDown)))
+    candleSeriesRef.current?.applyOptions({ priceLineColor: priceLineColor(lastCandle, theme) })
+    volumeSeriesRef.current?.setData(candles.map((candle) => toVolumeData(candle, tokenDecimals ?? 0, theme.volumeUp, theme.volumeDown)))
 
     if (!lastCandle) return
 
@@ -275,14 +417,14 @@ export function PriceChart({ market, ethUsdPriceState, interval = DEFAULT_CANDLE
 
     chartRef.current?.timeScale().fitContent()
     fittedDataKeyRef.current = fitKey
-  }, [rawCandles, decimals, ethUsdPrice, interval, market.repoId])
+  }, [rawCandles, tokenDecimals, tokenSupply, ethUsdPrice, interval, market.repoId])
 
   return (
-    <section className="price-chart" aria-label={`${market.baseTokenSymbol}/USD price chart`}>
+    <section className="price-chart" aria-label={`${market.baseTokenSymbol} market cap chart`}>
       <div className="price-chart__surface">
         <div ref={containerRef} className="price-chart__canvas" />
-        <PriceChartLegend market={market} interval={interval} state={displayState} />
-        <PriceChartStatus candleState={candleState} ethUsdPriceState={ethUsdPriceState} displayState={displayState} />
+        <PriceChartLegend market={market} interval={interval} state={chartState} />
+        <PriceChartStatus candleState={candleState} ethUsdPriceState={ethUsdPriceState} chartState={chartState} />
       </div>
     </section>
   )
