@@ -1,14 +1,15 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, Notice } from '@freecodexyz/ui'
-import { formatUnits } from 'viem'
-import { tokensPerWethToUsdPrice, type EthUsdPriceState } from './marketPrice'
+import type { EthUsdPriceState } from './marketPrice'
+import {
+  DEFAULT_TOKEN_DECIMALS,
+  formatBookTokenAmount,
+  formatSpreadPercent,
+  formatTokensPerWethUsdPrice,
+  priceSpread,
+  priceSpreadPercent,
+} from './marketNumbers'
 import { MARKET_LIVE_REFETCH_INTERVAL_MS, useSubscription } from './ws'
-
-const DEFAULT_TOKEN_DECIMALS = 18
-const USD_PRICE_FORMAT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumSignificantDigits: 8 })
-const ETH_SPOT_FORMAT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
-const TOKEN_FORMAT = new Intl.NumberFormat('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
-const PERCENT_FORMAT = new Intl.NumberFormat('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
 
 type DepthSide = 'ask' | 'bid'
 
@@ -139,43 +140,11 @@ function depthPercent(level: DepthLevel, max: bigint): number {
   return Number((amount * 10_000n) / max) / 100
 }
 
-function formatPrice(value: number, ethUsdPriceState: EthUsdPriceState) {
-  if (ethUsdPriceState.status !== 'ready') return '-'
-
-  const usdPrice = tokensPerWethToUsdPrice(value, ethUsdPriceState.usdPrice)
-  return usdPrice == null ? '-' : USD_PRICE_FORMAT.format(usdPrice)
-}
-
-function formatTokenAmount(value: string, decimals: number) {
-  try {
-    const amount = Number(formatUnits(BigInt(value), decimals))
-    return Number.isFinite(amount) ? TOKEN_FORMAT.format(amount) : '-'
-  } catch {
-    return '-'
-  }
-}
-
-function formatSpreadPercent(bestBid: DepthLevel | undefined, bestAsk: DepthLevel | undefined) {
-  if (!bestBid || !bestAsk) return '-'
-
-  const mid = (bestBid.price + bestAsk.price) / 2
-  if (!Number.isFinite(mid) || mid <= 0) return '-'
-
-  return `${PERCENT_FORMAT.format((Math.max(0, bestAsk.price - bestBid.price) / mid) * 100)}%`
-}
-
 function formatSpread(bestBid: DepthLevel | undefined, bestAsk: DepthLevel | undefined, ethUsdPriceState: EthUsdPriceState) {
-  if (!bestBid || !bestAsk) return '-'
+  const spread = priceSpread(bestBid?.price, bestAsk?.price)
+  if (spread == null) return '-'
 
-  return formatPrice(Math.max(0, bestAsk.price - bestBid.price), ethUsdPriceState)
-}
-
-function priceConversionStatus(ethUsdPriceState: EthUsdPriceState) {
-  if (ethUsdPriceState.status === 'ready') return `ETH/USD ${ETH_SPOT_FORMAT.format(ethUsdPriceState.usdPrice)}`
-  if (ethUsdPriceState.status === 'loading') return 'Loading USD price'
-  if (ethUsdPriceState.status === 'error') return 'USD price unavailable'
-
-  return 'No USD price'
+  return formatTokensPerWethUsdPrice(spread, ethUsdPriceState)
 }
 
 function stateFromQuery(book: DepthBook | undefined, status: 'error' | 'pending' | 'success', error: Error | null): OrderBookState {
@@ -201,9 +170,9 @@ function OrderBookColumns({ baseTokenSymbol }: { baseTokenSymbol: string }) {
 }
 
 function OrderBookRow({ side, level, tokenDecimals, maxCumulative, ethUsdPriceState }: OrderBookRowProps) {
-  const price = formatPrice(level.price, ethUsdPriceState)
-  const size = formatTokenAmount(level.size, tokenDecimals)
-  const total = formatTokenAmount(level.cumulative, tokenDecimals)
+  const price = formatTokensPerWethUsdPrice(level.price, ethUsdPriceState)
+  const size = formatBookTokenAmount(level.size, tokenDecimals)
+  const total = formatBookTokenAmount(level.cumulative, tokenDecimals)
   const sideLabel = side === 'ask' ? 'Ask' : 'Bid'
 
   return (
@@ -217,11 +186,13 @@ function OrderBookRow({ side, level, tokenDecimals, maxCumulative, ethUsdPriceSt
 }
 
 function OrderBookSpread({ bestBid, bestAsk, ethUsdPriceState }: { bestBid: DepthLevel | undefined; bestAsk: DepthLevel | undefined; ethUsdPriceState: EthUsdPriceState }) {
+  const spreadPercent = priceSpreadPercent(bestBid?.price, bestAsk?.price)
+
   return (
     <div className="order-book__spread" role="row" aria-label="Order book spread">
       <span role="cell">Spread</span>
       <span className="order-book__number" role="cell">{formatSpread(bestBid, bestAsk, ethUsdPriceState)}</span>
-      <span className="order-book__number" role="cell">{formatSpreadPercent(bestBid, bestAsk)}</span>
+      <span className="order-book__number" role="cell">{formatSpreadPercent(spreadPercent)}</span>
     </div>
   )
 }
@@ -276,7 +247,6 @@ export function OrderBook({ market, ethUsdPriceState }: OrderBookProps) {
     <Card className="order-book" aria-label="Order book">
       <header className="order-book__top">
         <h2>Order Book</h2>
-        <span aria-live="polite">{priceConversionStatus(ethUsdPriceState)}</span>
       </header>
       <div className="order-book__table" role="table" aria-label={`${market.baseTokenSymbol} order book`}>
         <OrderBookColumns baseTokenSymbol={market.baseTokenSymbol} />

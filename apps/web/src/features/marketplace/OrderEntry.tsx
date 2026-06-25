@@ -1,5 +1,6 @@
 import { useId, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Button, Card, Slider, SpecRow, Specs, Tab, Tabs } from '@freecodexyz/ui'
+import { bpsToRate, formatBpsPercent, formatDisplayTokenAmount, safePositiveNumber } from './marketNumbers'
 
 const ORDER_SIDES = ['buy', 'sell'] as const
 
@@ -64,14 +65,6 @@ function availableForSide(side: OrderSide, market: OrderEntryMarket, balances: O
   return side === 'buy'
     ? { amount: balances.quoteAvailable, tokenSymbol: market.quoteTokenSymbol }
     : { amount: balances.baseAvailable, tokenSymbol: market.baseTokenSymbol }
-}
-
-function safePositiveNumber(value: number) {
-  return Number.isFinite(value) && value > 0 ? value : 0
-}
-
-function bpsToRate(bps: number) {
-  return Number.isFinite(bps) && bps > 0 ? bps / 10_000 : 0
 }
 
 function sanitizeDecimalInput(value: string) {
@@ -186,21 +179,6 @@ function calculateOrder(side: OrderSide, sizeToken: TokenRole, sizeAmount: numbe
   } satisfies OrderEntryOrder
 }
 
-function formatTokenAmount(amount: number) {
-  const safeAmount = Number.isFinite(amount) ? Math.max(0, amount) : 0
-  const maximumFractionDigits = safeAmount > 0 && safeAmount < 1 ? 6 : 2
-
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits,
-  }).format(safeAmount)
-}
-
-function formatBpsPercent(bps: number) {
-  const safeBps = Number.isFinite(bps) && bps > 0 ? bps : 0
-  return (safeBps / 100).toFixed(2)
-}
-
 function isTokenRole(value: string): value is TokenRole {
   return value === 'base' || value === 'quote'
 }
@@ -224,7 +202,7 @@ export function OrderEntry({ market, balances, costs, onPlaceOrder }: OrderEntry
   const hasTradableSize = order != null && order.sizeAmount > 0
   const hasAvailableBalance = spendAmount <= safePositiveNumber(activeAvailable.amount)
   const canPlaceOrder = hasTradableSize && hasAvailableBalance
-  const buttonQuantity = order ? formatTokenAmount(order.outputAmount) : '0.00'
+  const buttonQuantity = order ? formatDisplayTokenAmount(order.outputAmount) : '0.00'
   const buttonTokenSymbol = order?.outputTokenSymbol ?? (side === 'buy' ? market.baseTokenSymbol : market.quoteTokenSymbol)
 
   function handleSideChange(nextSide: OrderSide) {
@@ -276,7 +254,7 @@ export function OrderEntry({ market, balances, costs, onPlaceOrder }: OrderEntry
         <p className="order-entry__available" aria-live="polite">
           <span>Available to Trade</span>
           <span className="order-entry__available-value">
-            <span className="order-entry__numeric">{formatTokenAmount(activeAvailable.amount)}</span> {activeAvailable.tokenSymbol}
+            <span className="order-entry__numeric">{formatDisplayTokenAmount(activeAvailable.amount)}</span> {activeAvailable.tokenSymbol}
           </span>
         </p>
 
@@ -336,13 +314,13 @@ export function OrderEntry({ market, balances, costs, onPlaceOrder }: OrderEntry
 
         <Specs className="order-entry__summary">
           <SpecRow label="Order Value">
-            <span className="order-entry__numeric">{order ? formatTokenAmount(order.orderValue) : '0.00'}</span> {market.quoteTokenSymbol}
+            <span className="order-entry__numeric">{order ? formatDisplayTokenAmount(order.orderValue) : '0.00'}</span> {market.quoteTokenSymbol}
           </SpecRow>
           <SpecRow label="Slippage">
-            <span className="order-entry__numeric">{order ? formatTokenAmount(order.slippageAmount) : '0.00'}</span> {order?.slippageTokenSymbol ?? buttonTokenSymbol} (<span className="order-entry__numeric">{formatBpsPercent(costs.slippageBps)}</span>%)
+            <span className="order-entry__numeric">{order ? formatDisplayTokenAmount(order.slippageAmount) : '0.00'}</span> {order?.slippageTokenSymbol ?? buttonTokenSymbol} (<span className="order-entry__numeric">{formatBpsPercent(costs.slippageBps)}</span>%)
           </SpecRow>
           <SpecRow label="Fees">
-            <span className="order-entry__numeric">{order ? formatTokenAmount(order.feeAmount) : '0.00'}</span> {order?.feeTokenSymbol ?? buttonTokenSymbol} (<span className="order-entry__numeric">{formatBpsPercent(costs.feeBps)}</span>%)
+            <span className="order-entry__numeric">{order ? formatDisplayTokenAmount(order.feeAmount) : '0.00'}</span> {order?.feeTokenSymbol ?? buttonTokenSymbol} (<span className="order-entry__numeric">{formatBpsPercent(costs.feeBps)}</span>%)
           </SpecRow>
         </Specs>
 

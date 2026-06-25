@@ -3,16 +3,13 @@ import { Card, Notice } from '@freecodexyz/ui'
 import { AutoSizer } from 'react-virtualized-auto-sizer'
 import { List } from 'react-window'
 import type { RowComponentProps } from 'react-window'
-import { formatUnits } from 'viem'
 import { explorerTxUrl } from '../../shared/explorers'
-import { tokensPerWethToUsdPrice, type EthUsdPriceState } from './marketPrice'
+import type { EthUsdPriceState } from './marketPrice'
+import { DEFAULT_TOKEN_DECIMALS, formatTokensPerWethUsdPrice, formatTradeSize, sqrtPriceX96ToTokenPrice } from './marketNumbers'
 import { MARKET_LIVE_REFETCH_INTERVAL_MS, useSubscription } from './ws'
 
 const DEFAULT_TRADE_LIMIT = 5_000
 const TRADE_ROW_HEIGHT = 24
-const USD_PRICE_FORMAT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumSignificantDigits: 8 })
-const ETH_SPOT_FORMAT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
-const SIZE_FORMAT = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 8 })
 
 type TradeSide = 'buy' | 'sell'
 
@@ -141,20 +138,12 @@ function sideFromAmount0(value: string): TradeSide | null {
   }
 }
 
-function priceFromSqrtPriceX96(value: string): number | null {
-  const sqrtPriceX96 = Number(value)
-  if (!Number.isFinite(sqrtPriceX96) || sqrtPriceX96 <= 0) return null
-
-  const sqrtPrice = sqrtPriceX96 / 2 ** 96
-  return sqrtPrice * sqrtPrice
-}
-
 function parseLiveTrade(value: unknown): Trade | null {
   if (!isLiveTradePayload(value)) return null
 
   const size = absoluteBigIntString(value.amount1)
   const side = sideFromAmount0(value.amount0)
-  const price = priceFromSqrtPriceX96(value.sqrtPriceX96)
+  const price = sqrtPriceX96ToTokenPrice(value.sqrtPriceX96)
   if (!size || !side || price == null) return null
 
   return {
@@ -203,35 +192,11 @@ function formatTradeTime(timestamp: number) {
   }
 }
 
-function formatPrice(price: number, ethUsdPriceState: EthUsdPriceState) {
-  if (ethUsdPriceState.status !== 'ready') return '-'
-
-  const usdPrice = tokensPerWethToUsdPrice(price, ethUsdPriceState.usdPrice)
-  return usdPrice == null ? '-' : USD_PRICE_FORMAT.format(usdPrice)
-}
-
-function priceConversionStatus(ethUsdPriceState: EthUsdPriceState) {
-  if (ethUsdPriceState.status === 'ready') return `ETH/USD ${ETH_SPOT_FORMAT.format(ethUsdPriceState.usdPrice)}`
-  if (ethUsdPriceState.status === 'loading') return 'Loading USD price'
-  if (ethUsdPriceState.status === 'error') return 'USD price unavailable'
-
-  return 'No USD price'
-}
-
-function formatSize(size: string, decimals: number) {
-  try {
-    const amount = Number(formatUnits(BigInt(size), decimals))
-    return Number.isFinite(amount) ? SIZE_FORMAT.format(amount) : size
-  } catch {
-    return size
-  }
-}
-
 function TradeFeedRow({ index, style, ariaAttributes, trades, chainId, baseTokenDecimals, ethUsdPriceState }: RowComponentProps<TradeFeedRowProps>) {
   const trade = trades[index]
   if (!trade) return null
 
-  const price = formatPrice(trade.price, ethUsdPriceState)
+  const price = formatTokensPerWethUsdPrice(trade.price, ethUsdPriceState)
   const sideLabel = trade.side === 'buy' ? 'BUY' : 'SELL'
   const time = formatTradeTime(trade.ts)
 
@@ -240,7 +205,7 @@ function TradeFeedRow({ index, style, ariaAttributes, trades, chainId, baseToken
       <span className={`trade-feed__cell trade-feed__number trade-feed__price trade-feed__price--${trade.side}`} aria-label={`${sideLabel} price ${price}`}>
         {price}
       </span>
-      <span className="trade-feed__cell trade-feed__number">{formatSize(trade.size, baseTokenDecimals)}</span>
+      <span className="trade-feed__cell trade-feed__number">{formatTradeSize(trade.size, baseTokenDecimals)}</span>
       <span className="trade-feed__cell trade-feed__time">
         <time dateTime={time.iso}>
           <span className="trade-feed__number">{time.hours}</span>
@@ -263,7 +228,7 @@ function TradeFeedRow({ index, style, ariaAttributes, trades, chainId, baseToken
 export function TradeFeed({ market, ethUsdPriceState, limit = DEFAULT_TRADE_LIMIT }: TradeFeedProps) {
   const queryClient = useQueryClient()
   const tradeQueryKey = ['trades', market.repoId, limit] as const
-  const baseTokenDecimals = market.baseTokenDecimals ?? 18
+  const baseTokenDecimals = market.baseTokenDecimals ?? DEFAULT_TOKEN_DECIMALS
   const tradesQuery = useQuery({
     queryKey: tradeQueryKey,
     queryFn: ({ signal }) => loadTrades(market.repoId, limit, signal),
@@ -285,7 +250,6 @@ export function TradeFeed({ market, ethUsdPriceState, limit = DEFAULT_TRADE_LIMI
     <Card className="trade-feed" aria-label="Trades feed">
       <header className="trade-feed__top">
         <h2>Trades</h2>
-        <span aria-live="polite">{priceConversionStatus(ethUsdPriceState)}</span>
       </header>
       <div className="trade-feed__columns" role="row">
         <span role="columnheader">Price (USD)</span>

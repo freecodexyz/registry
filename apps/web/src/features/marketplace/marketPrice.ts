@@ -52,13 +52,6 @@ function stateFromEthUsdPriceQuery(usdPrice: number | undefined, status: 'error'
   return { status: 'empty' }
 }
 
-export function tokensPerWethToUsdPrice(tokensPerWeth: number, wethUsdPrice: number): number | null {
-  if (!Number.isFinite(tokensPerWeth) || tokensPerWeth <= 0) return null
-  if (!Number.isFinite(wethUsdPrice) || wethUsdPrice < 0) return null
-
-  return wethUsdPrice / tokensPerWeth
-}
-
 export function useEthUsdPrice(enabled: boolean): EthUsdPriceState {
   const priceQuery = useQuery({
     queryKey: ['eth-usd-spot-price'],

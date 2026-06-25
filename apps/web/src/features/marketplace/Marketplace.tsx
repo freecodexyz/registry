@@ -2,16 +2,19 @@ import { useQuery } from '@tanstack/react-query'
 import { Notice } from '@freecodexyz/ui'
 import { Allotment } from 'allotment'
 import 'allotment/dist/style.css'
+import { isAddress, type Address } from 'viem'
 import { baseSepolia } from 'wagmi/chains'
 import { OrderEntry } from './OrderEntry'
 import { OrderBook } from './OrderBook'
 import { TradeFeed } from './TradeFeed'
 import { PriceChart } from './PriceChart'
+import { PriceChartTopNav } from './PriceChartTopNav'
 import { useEthUsdPrice } from './marketPrice'
 
 type MarketSummary = {
   repoId: string;
   symbol: string;
+  asset: Address;
 }
 
 type MarketSelectionState =
@@ -44,7 +47,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isMarketSummary(value: unknown): value is MarketSummary {
-  return isRecord(value) && typeof value.repoId === 'string' && typeof value.symbol === 'string'
+  return isRecord(value) && typeof value.repoId === 'string' && typeof value.symbol === 'string' && typeof value.asset === 'string' && isAddress(value.asset)
 }
 
 function parseMarketsResponse(value: unknown): MarketSummary[] {
@@ -96,14 +99,25 @@ export function Marketplace() {
         <Allotment.Pane minSize={420}>
           <section className="marketplace__pane marketplace__chart" aria-label="Market price chart">
             {activeMarket ? (
-              <PriceChart
-                market={{
-                  repoId: activeMarket.repoId,
-                  baseTokenSymbol: activeMarket.symbol,
-                  quoteTokenSymbol: demoMarket.quoteTokenSymbol,
-                }}
-                ethUsdPriceState={ethUsdPriceState}
-              />
+              <div className="marketplace__chart-stack">
+                <PriceChartTopNav
+                  market={{
+                    repoId: activeMarket.repoId,
+                    baseTokenSymbol: activeMarket.symbol,
+                    tokenAddress: activeMarket.asset,
+                    chainId: baseSepolia.id,
+                  }}
+                  ethUsdPriceState={ethUsdPriceState}
+                />
+                <PriceChart
+                  market={{
+                    repoId: activeMarket.repoId,
+                    baseTokenSymbol: activeMarket.symbol,
+                    quoteTokenSymbol: demoMarket.quoteTokenSymbol,
+                  }}
+                  ethUsdPriceState={ethUsdPriceState}
+                />
+              </div>
             ) : (
               <MarketPaneNotice state={marketState} />
             )}

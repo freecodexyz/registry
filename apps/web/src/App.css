@@ -279,10 +279,20 @@
 }
 
 .marketplace__pane > .price-chart,
+.marketplace__pane > .marketplace__chart-stack,
 .marketplace__pane > .order-book,
 .marketplace__pane > .trade-feed,
 .marketplace__pane > .order-entry {
   flex: 1 1 auto;
+}
+
+.marketplace__chart-stack {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 52px minmax(0, 1fr);
 }
 
 .marketplace__notice {
@@ -311,6 +321,127 @@
   background: var(--chart-bg);
   color: var(--chart-text);
   overflow: hidden;
+}
+
+.marketplace__chart-stack > .price-chart {
+  height: 100%;
+  min-height: 0;
+  border-top: 0;
+}
+
+.price-chart-nav {
+  --chart-bg: #071113;
+  --chart-grid: rgba(122, 143, 151, 0.16);
+  --chart-text: #aeb8c2;
+  --chart-up: #00d6b4;
+  --chart-down: #ff4d57;
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: minmax(92px, 0.85fr) minmax(148px, 1.35fr) minmax(118px, 1fr) minmax(118px, 1fr) minmax(178px, 1.45fr);
+  border: var(--bw) solid #16272d;
+  background: var(--chart-bg);
+  color: var(--chart-text);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.price-chart-nav__item {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 5px 10px 6px;
+  border-right: var(--bw) solid var(--chart-grid);
+}
+
+.price-chart-nav__item:last-child {
+  border-right: 0;
+}
+
+.price-chart-nav__label {
+  color: #7f8b96;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: var(--w-medium);
+  letter-spacing: 0.05em;
+  line-height: 12px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.price-chart-nav__value,
+.price-chart-nav__contract-value,
+.price-chart-nav__contract-address {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.price-chart-nav__value {
+  min-width: 0;
+  overflow: hidden;
+  color: #d7e0e8;
+  font-size: 13px;
+  font-weight: var(--w-medium);
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.price-chart-nav__value--up {
+  color: var(--chart-up);
+}
+
+.price-chart-nav__value--down,
+.price-chart-nav__value--error {
+  color: var(--chart-down);
+}
+
+.price-chart-nav__value--flat,
+.price-chart-nav__value--loading,
+.price-chart-nav__value--empty {
+  color: var(--chart-text);
+}
+
+.price-chart-nav__contract-value {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #d7e0e8;
+  font-size: 13px;
+  font-weight: var(--w-medium);
+  line-height: 16px;
+}
+
+.price-chart-nav__contract-address {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.price-chart-nav__external {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: var(--bw) solid #21343b;
+  color: var(--chart-text);
+  text-decoration: none;
+}
+
+.price-chart-nav__external:hover {
+  border-color: var(--chart-up);
+  color: var(--chart-up);
+}
+
+.price-chart-nav__external svg {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
 }
 
 .price-chart__surface {
