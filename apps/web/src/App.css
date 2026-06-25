@@ -299,7 +299,7 @@
   --chart-grid: rgba(122, 143, 151, 0.16);
   --chart-text: #aeb8c2;
   --chart-crosshair: rgba(204, 216, 224, 0.56);
-  --chart-price-scale-width: 72px;
+  --chart-price-scale-width: 88px;
   --chart-up: #00d6b4;
   --chart-down: #ff4d57;
   --chart-volume-up: rgba(0, 214, 180, 0.36);
@@ -514,7 +514,7 @@
 .order-book__row,
 .order-book__spread {
   display: grid;
-  grid-template-columns: minmax(62px, 0.9fr) minmax(70px, 1fr) minmax(70px, 1fr);
+  grid-template-columns: minmax(76px, 0.9fr) minmax(70px, 1fr) minmax(70px, 1fr);
   align-items: center;
   gap: 6px;
 }
@@ -670,7 +670,7 @@
 .trade-feed__columns,
 .trade-feed__row {
   display: grid;
-  grid-template-columns: minmax(64px, 1fr) minmax(58px, 0.8fr) minmax(70px, auto);
+  grid-template-columns: minmax(76px, 1fr) minmax(58px, 0.8fr) minmax(70px, auto);
   align-items: center;
   gap: 6px;
 }

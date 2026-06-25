@@ -7,6 +7,7 @@ import { OrderEntry } from './OrderEntry'
 import { OrderBook } from './OrderBook'
 import { TradeFeed } from './TradeFeed'
 import { PriceChart } from './PriceChart'
+import { useEthUsdPrice } from './marketPrice'
 
 type MarketSummary = {
   repoId: string;
@@ -83,6 +84,7 @@ export function Marketplace() {
   })
   const marketState = stateFromMarkets(marketsQuery.data, marketsQuery.status, marketsQuery.error)
   const activeMarket = marketState.status === 'ready' ? marketState.market : null
+  const ethUsdPriceState = useEthUsdPrice(activeMarket != null)
   const orderMarket = {
     ...demoMarket,
     baseTokenSymbol: activeMarket?.symbol ?? demoMarket.baseTokenSymbol,
@@ -100,6 +102,7 @@ export function Marketplace() {
                   baseTokenSymbol: activeMarket.symbol,
                   quoteTokenSymbol: demoMarket.quoteTokenSymbol,
                 }}
+                ethUsdPriceState={ethUsdPriceState}
               />
             ) : (
               <MarketPaneNotice state={marketState} />
@@ -117,6 +120,7 @@ export function Marketplace() {
                       repoId: activeMarket.repoId,
                       baseTokenSymbol: activeMarket.symbol,
                     }}
+                    ethUsdPriceState={ethUsdPriceState}
                   />
                 ) : (
                   <MarketPaneNotice state={marketState} />
@@ -133,6 +137,7 @@ export function Marketplace() {
                       baseTokenSymbol: activeMarket.symbol,
                       chainId: baseSepolia.id,
                     }}
+                    ethUsdPriceState={ethUsdPriceState}
                   />
                 ) : (
                   <MarketPaneNotice state={marketState} />

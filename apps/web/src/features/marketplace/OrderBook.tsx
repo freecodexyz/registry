@@ -1,10 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, Notice } from '@freecodexyz/ui'
 import { formatUnits } from 'viem'
+import { tokensPerWethToUsdPrice, type EthUsdPriceState } from './marketPrice'
 import { MARKET_LIVE_REFETCH_INTERVAL_MS, useSubscription } from './ws'
 
 const DEFAULT_TOKEN_DECIMALS = 18
-const PRICE_FORMAT = new Intl.NumberFormat('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+const USD_PRICE_FORMAT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumSignificantDigits: 8 })
+const ETH_SPOT_FORMAT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
 const TOKEN_FORMAT = new Intl.NumberFormat('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
 const PERCENT_FORMAT = new Intl.NumberFormat('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
 
@@ -33,6 +35,7 @@ export type OrderBookMarket = {
 
 type OrderBookProps = {
   market: OrderBookMarket;
+  ethUsdPriceState: EthUsdPriceState;
 }
 
 type OrderBookState =
@@ -46,6 +49,7 @@ type OrderBookRowProps = {
   level: DepthLevel;
   tokenDecimals: number;
   maxCumulative: bigint;
+  ethUsdPriceState: EthUsdPriceState;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -135,8 +139,11 @@ function depthPercent(level: DepthLevel, max: bigint): number {
   return Number((amount * 10_000n) / max) / 100
 }
 
-function formatPrice(value: number) {
-  return Number.isFinite(value) ? PRICE_FORMAT.format(value) : '-'
+function formatPrice(value: number, ethUsdPriceState: EthUsdPriceState) {
+  if (ethUsdPriceState.status !== 'ready') return '-'
+
+  const usdPrice = tokensPerWethToUsdPrice(value, ethUsdPriceState.usdPrice)
+  return usdPrice == null ? '-' : USD_PRICE_FORMAT.format(usdPrice)
 }
 
 function formatTokenAmount(value: string, decimals: number) {
@@ -157,10 +164,18 @@ function formatSpreadPercent(bestBid: DepthLevel | undefined, bestAsk: DepthLeve
   return `${PERCENT_FORMAT.format((Math.max(0, bestAsk.price - bestBid.price) / mid) * 100)}%`
 }
 
-function formatSpread(bestBid: DepthLevel | undefined, bestAsk: DepthLevel | undefined) {
+function formatSpread(bestBid: DepthLevel | undefined, bestAsk: DepthLevel | undefined, ethUsdPriceState: EthUsdPriceState) {
   if (!bestBid || !bestAsk) return '-'
 
-  return formatPrice(Math.max(0, bestAsk.price - bestBid.price))
+  return formatPrice(Math.max(0, bestAsk.price - bestBid.price), ethUsdPriceState)
+}
+
+function priceConversionStatus(ethUsdPriceState: EthUsdPriceState) {
+  if (ethUsdPriceState.status === 'ready') return `ETH/USD ${ETH_SPOT_FORMAT.format(ethUsdPriceState.usdPrice)}`
+  if (ethUsdPriceState.status === 'loading') return 'Loading USD price'
+  if (ethUsdPriceState.status === 'error') return 'USD price unavailable'
+
+  return 'No USD price'
 }
 
 function stateFromQuery(book: DepthBook | undefined, status: 'error' | 'pending' | 'success', error: Error | null): OrderBookState {
@@ -178,15 +193,15 @@ function stateFromQuery(book: DepthBook | undefined, status: 'error' | 'pending'
 function OrderBookColumns({ baseTokenSymbol }: { baseTokenSymbol: string }) {
   return (
     <div className="order-book__columns" role="row">
-      <span role="columnheader">Price</span>
+      <span role="columnheader">Price (USD)</span>
       <span role="columnheader">Size ({baseTokenSymbol})</span>
       <span role="columnheader">Total ({baseTokenSymbol})</span>
     </div>
   )
 }
 
-function OrderBookRow({ side, level, tokenDecimals, maxCumulative }: OrderBookRowProps) {
-  const price = formatPrice(level.price)
+function OrderBookRow({ side, level, tokenDecimals, maxCumulative, ethUsdPriceState }: OrderBookRowProps) {
+  const price = formatPrice(level.price, ethUsdPriceState)
   const size = formatTokenAmount(level.size, tokenDecimals)
   const total = formatTokenAmount(level.cumulative, tokenDecimals)
   const sideLabel = side === 'ask' ? 'Ask' : 'Bid'
@@ -201,17 +216,17 @@ function OrderBookRow({ side, level, tokenDecimals, maxCumulative }: OrderBookRo
   )
 }
 
-function OrderBookSpread({ bestBid, bestAsk }: { bestBid: DepthLevel | undefined; bestAsk: DepthLevel | undefined }) {
+function OrderBookSpread({ bestBid, bestAsk, ethUsdPriceState }: { bestBid: DepthLevel | undefined; bestAsk: DepthLevel | undefined; ethUsdPriceState: EthUsdPriceState }) {
   return (
     <div className="order-book__spread" role="row" aria-label="Order book spread">
       <span role="cell">Spread</span>
-      <span className="order-book__number" role="cell">{formatSpread(bestBid, bestAsk)}</span>
+      <span className="order-book__number" role="cell">{formatSpread(bestBid, bestAsk, ethUsdPriceState)}</span>
       <span className="order-book__number" role="cell">{formatSpreadPercent(bestBid, bestAsk)}</span>
     </div>
   )
 }
 
-function OrderBookLadder({ book, market }: { book: DepthBook; market: OrderBookMarket }) {
+function OrderBookLadder({ book, market, ethUsdPriceState }: { book: DepthBook; market: OrderBookMarket; ethUsdPriceState: EthUsdPriceState }) {
   const tokenDecimals = market.baseTokenDecimals ?? DEFAULT_TOKEN_DECIMALS
   const asks = book.asks.toReversed()
   const bestAsk = book.asks[0]
@@ -221,25 +236,25 @@ function OrderBookLadder({ book, market }: { book: DepthBook; market: OrderBookM
   return (
     <div className="order-book__ladder" role="rowgroup">
       <div className="order-book__levels order-book__levels--asks">
-        {asks.map((level) => <OrderBookRow key={`ask:${level.price}`} side="ask" level={level} tokenDecimals={tokenDecimals} maxCumulative={cumulativeMax} />)}
+        {asks.map((level) => <OrderBookRow key={`ask:${level.price}`} side="ask" level={level} tokenDecimals={tokenDecimals} maxCumulative={cumulativeMax} ethUsdPriceState={ethUsdPriceState} />)}
       </div>
-      <OrderBookSpread bestBid={bestBid} bestAsk={bestAsk} />
+      <OrderBookSpread bestBid={bestBid} bestAsk={bestAsk} ethUsdPriceState={ethUsdPriceState} />
       <div className="order-book__levels order-book__levels--bids">
-        {book.bids.map((level) => <OrderBookRow key={`bid:${level.price}`} side="bid" level={level} tokenDecimals={tokenDecimals} maxCumulative={cumulativeMax} />)}
+        {book.bids.map((level) => <OrderBookRow key={`bid:${level.price}`} side="bid" level={level} tokenDecimals={tokenDecimals} maxCumulative={cumulativeMax} ethUsdPriceState={ethUsdPriceState} />)}
       </div>
     </div>
   )
 }
 
-function OrderBookBody({ state, market }: { state: OrderBookState; market: OrderBookMarket }) {
+function OrderBookBody({ state, market, ethUsdPriceState }: { state: OrderBookState; market: OrderBookMarket; ethUsdPriceState: EthUsdPriceState }) {
   if (state.status === 'loading') return <Notice className="order-book__state">Loading order book...</Notice>
   if (state.status === 'error') return <Notice className="order-book__state" tone="danger" role="alert">{state.message}</Notice>
   if (state.status === 'empty') return <Notice className="order-book__state">No depth available.</Notice>
 
-  return <OrderBookLadder book={state.book} market={market} />
+  return <OrderBookLadder book={state.book} market={market} ethUsdPriceState={ethUsdPriceState} />
 }
 
-export function OrderBook({ market }: OrderBookProps) {
+export function OrderBook({ market, ethUsdPriceState }: OrderBookProps) {
   const queryClient = useQueryClient()
   const depthQueryKey = ['depth', market.repoId] as const
   const depthQuery = useQuery({
@@ -261,10 +276,11 @@ export function OrderBook({ market }: OrderBookProps) {
     <Card className="order-book" aria-label="Order book">
       <header className="order-book__top">
         <h2>Order Book</h2>
+        <span aria-live="polite">{priceConversionStatus(ethUsdPriceState)}</span>
       </header>
       <div className="order-book__table" role="table" aria-label={`${market.baseTokenSymbol} order book`}>
         <OrderBookColumns baseTokenSymbol={market.baseTokenSymbol} />
-        <OrderBookBody state={state} market={market} />
+        <OrderBookBody state={state} market={market} ethUsdPriceState={ethUsdPriceState} />
       </div>
     </Card>
   )

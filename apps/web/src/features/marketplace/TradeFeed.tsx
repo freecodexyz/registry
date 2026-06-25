@@ -5,11 +5,13 @@ import { List } from 'react-window'
 import type { RowComponentProps } from 'react-window'
 import { formatUnits } from 'viem'
 import { explorerTxUrl } from '../../shared/explorers'
+import { tokensPerWethToUsdPrice, type EthUsdPriceState } from './marketPrice'
 import { MARKET_LIVE_REFETCH_INTERVAL_MS, useSubscription } from './ws'
 
 const DEFAULT_TRADE_LIMIT = 5_000
 const TRADE_ROW_HEIGHT = 24
-const PRICE_FORMAT = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 8 })
+const USD_PRICE_FORMAT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumSignificantDigits: 8 })
+const ETH_SPOT_FORMAT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
 const SIZE_FORMAT = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 8 })
 
 type TradeSide = 'buy' | 'sell'
@@ -34,6 +36,7 @@ export type TradeFeedMarket = {
 
 type TradeFeedProps = {
   market: TradeFeedMarket;
+  ethUsdPriceState: EthUsdPriceState;
   limit?: number;
 }
 
@@ -61,6 +64,7 @@ type TradeFeedRowProps = {
   trades: Trade[];
   chainId: number;
   baseTokenDecimals: number;
+  ethUsdPriceState: EthUsdPriceState;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -199,8 +203,19 @@ function formatTradeTime(timestamp: number) {
   }
 }
 
-function formatPrice(price: number) {
-  return Number.isFinite(price) ? PRICE_FORMAT.format(price) : '-'
+function formatPrice(price: number, ethUsdPriceState: EthUsdPriceState) {
+  if (ethUsdPriceState.status !== 'ready') return '-'
+
+  const usdPrice = tokensPerWethToUsdPrice(price, ethUsdPriceState.usdPrice)
+  return usdPrice == null ? '-' : USD_PRICE_FORMAT.format(usdPrice)
+}
+
+function priceConversionStatus(ethUsdPriceState: EthUsdPriceState) {
+  if (ethUsdPriceState.status === 'ready') return `ETH/USD ${ETH_SPOT_FORMAT.format(ethUsdPriceState.usdPrice)}`
+  if (ethUsdPriceState.status === 'loading') return 'Loading USD price'
+  if (ethUsdPriceState.status === 'error') return 'USD price unavailable'
+
+  return 'No USD price'
 }
 
 function formatSize(size: string, decimals: number) {
@@ -212,11 +227,11 @@ function formatSize(size: string, decimals: number) {
   }
 }
 
-function TradeFeedRow({ index, style, ariaAttributes, trades, chainId, baseTokenDecimals }: RowComponentProps<TradeFeedRowProps>) {
+function TradeFeedRow({ index, style, ariaAttributes, trades, chainId, baseTokenDecimals, ethUsdPriceState }: RowComponentProps<TradeFeedRowProps>) {
   const trade = trades[index]
   if (!trade) return null
 
-  const price = formatPrice(trade.price)
+  const price = formatPrice(trade.price, ethUsdPriceState)
   const sideLabel = trade.side === 'buy' ? 'BUY' : 'SELL'
   const time = formatTradeTime(trade.ts)
 
@@ -245,7 +260,7 @@ function TradeFeedRow({ index, style, ariaAttributes, trades, chainId, baseToken
   )
 }
 
-export function TradeFeed({ market, limit = DEFAULT_TRADE_LIMIT }: TradeFeedProps) {
+export function TradeFeed({ market, ethUsdPriceState, limit = DEFAULT_TRADE_LIMIT }: TradeFeedProps) {
   const queryClient = useQueryClient()
   const tradeQueryKey = ['trades', market.repoId, limit] as const
   const baseTokenDecimals = market.baseTokenDecimals ?? 18
@@ -270,9 +285,10 @@ export function TradeFeed({ market, limit = DEFAULT_TRADE_LIMIT }: TradeFeedProp
     <Card className="trade-feed" aria-label="Trades feed">
       <header className="trade-feed__top">
         <h2>Trades</h2>
+        <span aria-live="polite">{priceConversionStatus(ethUsdPriceState)}</span>
       </header>
       <div className="trade-feed__columns" role="row">
-        <span role="columnheader">Price</span>
+        <span role="columnheader">Price (USD)</span>
         <span role="columnheader">Size({market.baseTokenSymbol})</span>
         <span role="columnheader">Time</span>
       </div>
@@ -295,7 +311,7 @@ export function TradeFeed({ market, limit = DEFAULT_TRADE_LIMIT }: TradeFeedProp
                   rowComponent={TradeFeedRow}
                   rowCount={trades.length}
                   rowHeight={TRADE_ROW_HEIGHT}
-                  rowProps={{ trades, chainId: market.chainId, baseTokenDecimals }}
+                  rowProps={{ trades, chainId: market.chainId, baseTokenDecimals, ethUsdPriceState }}
                   overscanCount={8}
                   style={{ height: listHeight, width: listWidth }}
                 />

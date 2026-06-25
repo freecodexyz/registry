@@ -12,6 +12,7 @@ import {
   type UTCTimestamp,
 } from 'lightweight-charts'
 import { chartColor } from './chartColors'
+import { tokensPerWethToUsdPrice, type EthUsdPriceState } from './marketPrice'
 import { MARKET_LIVE_REFETCH_INTERVAL_MS, useSubscription } from './ws'
 
 type CandleInterval = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
@@ -20,7 +21,7 @@ const DEFAULT_INTERVAL: CandleInterval = '1h'
 const DEFAULT_LOOKBACK_SECONDS = 60 * 60 * 24 * 45
 const DEFAULT_TOKEN_DECIMALS = 18
 const MAX_CANDLE_POINTS = 1_500
-const PRICE_SCALE_MIN_WIDTH = 72
+const PRICE_SCALE_MIN_WIDTH = 88
 
 type MarketCandle = {
   time: number;
@@ -40,6 +41,7 @@ export type PriceChartMarket = {
 
 type PriceChartProps = {
   market: PriceChartMarket;
+  ethUsdPriceState: EthUsdPriceState;
   interval?: CandleInterval;
 }
 
@@ -49,8 +51,8 @@ type PriceChartState =
   | { status: 'empty' }
   | { status: 'ready'; candles: MarketCandle[] }
 
-const PRICE_FORMAT = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 8 })
-const CHANGE_FORMAT = new Intl.NumberFormat('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
+const USD_PRICE_FORMAT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumSignificantDigits: 8 })
+const USD_CHANGE_FORMAT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 4, maximumFractionDigits: 4 })
 const PERCENT_FORMAT = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -131,23 +133,52 @@ function stateFromQuery(candles: MarketCandle[] | undefined, status: 'error' | '
   return { status: 'empty' }
 }
 
+function toUsdCandle(candle: MarketCandle, wethUsdPrice: number): MarketCandle | null {
+  const open = tokensPerWethToUsdPrice(candle.open, wethUsdPrice)
+  const high = tokensPerWethToUsdPrice(candle.high, wethUsdPrice)
+  const low = tokensPerWethToUsdPrice(candle.low, wethUsdPrice)
+  const close = tokensPerWethToUsdPrice(candle.close, wethUsdPrice)
+
+  if (open == null || high == null || low == null || close == null) return null
+
+  return { ...candle, open, high, low, close }
+}
+
+function toUsdCandles(candles: MarketCandle[], wethUsdPrice: number): MarketCandle[] | null {
+  const usdCandles = candles.map((candle) => toUsdCandle(candle, wethUsdPrice))
+  if (usdCandles.some((candle) => candle == null)) return null
+
+  return usdCandles as MarketCandle[]
+}
+
+function stateFromUsdConversion(candleState: PriceChartState, ethUsdPriceState: EthUsdPriceState): PriceChartState {
+  if (candleState.status !== 'ready') return candleState
+  if (ethUsdPriceState.status !== 'ready') return { status: 'empty' }
+
+  const candles = toUsdCandles(candleState.candles, ethUsdPriceState.usdPrice)
+  if (!candles) return { status: 'error', message: 'Unable to convert price history to USD' }
+  if (candles.length === 0) return { status: 'empty' }
+
+  return { status: 'ready', candles }
+}
+
 function formatPrice(value: number) {
-  return Number.isFinite(value) ? PRICE_FORMAT.format(value) : '-'
+  return Number.isFinite(value) ? USD_PRICE_FORMAT.format(value) : '-'
 }
 
 function formatChartPrice(value: number) {
   const absolute = Math.abs(value)
   if (!Number.isFinite(value)) return '-'
-  if (absolute >= 1000) return value.toLocaleString('en-US', { maximumFractionDigits: 2 })
-  if (absolute >= 1) return value.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
-  return PRICE_FORMAT.format(value)
+  if (absolute >= 1000) return value.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
+  if (absolute >= 1) return value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 3, maximumFractionDigits: 3 })
+  return USD_PRICE_FORMAT.format(value)
 }
 
 function formatSigned(value: number) {
   if (!Number.isFinite(value)) return '-'
 
   const prefix = value > 0 ? '+' : ''
-  return `${prefix}${CHANGE_FORMAT.format(value)}`
+  return `${prefix}${USD_CHANGE_FORMAT.format(value)}`
 }
 
 function formatSignedPercent(value: number) {
@@ -189,9 +220,9 @@ function PriceChartLegend({ market, interval, state }: { market: PriceChartMarke
   return (
     <div className="price-chart__legend" aria-live="polite">
       <span className="price-chart__market">
-        <span>{market.baseTokenSymbol}/{market.quoteTokenSymbol}</span>
+        <span>{market.baseTokenSymbol}/USD</span>
         <span>{interval}</span>
-        <span>Registry market</span>
+        <span>ETH spot converted</span>
       </span>
       {candle ? (
         <dl className={`price-chart__ohlc price-chart__ohlc--${move}`}>
@@ -213,24 +244,48 @@ function PriceChartLegend({ market, interval, state }: { market: PriceChartMarke
   )
 }
 
-function PriceChartStatus({ state }: { state: PriceChartState }) {
-  if (state.status === 'ready') return null
+function PriceChartStatus({ candleState, ethUsdPriceState, displayState }: { candleState: PriceChartState; ethUsdPriceState: EthUsdPriceState; displayState: PriceChartState }) {
+  let status: Exclude<PriceChartState['status'], 'ready'> | null = null
+  let label = ''
 
-  const role = state.status === 'error' ? 'alert' : 'status'
-  const label = state.status === 'loading'
-    ? 'Loading price history...'
-    : state.status === 'error'
-      ? state.message
-      : 'No candles available.'
+  if (candleState.status === 'loading') {
+    status = 'loading'
+    label = 'Loading price history...'
+  } else if (candleState.status === 'error') {
+    status = 'error'
+    label = candleState.message
+  } else if (candleState.status === 'empty') {
+    status = 'empty'
+    label = 'No candles available.'
+  } else if (ethUsdPriceState.status === 'loading') {
+    status = 'loading'
+    label = 'Loading ETH-USD spot price...'
+  } else if (ethUsdPriceState.status === 'error') {
+    status = 'error'
+    label = ethUsdPriceState.message
+  } else if (ethUsdPriceState.status === 'empty') {
+    status = 'empty'
+    label = 'No ETH-USD spot price available.'
+  } else if (displayState.status === 'error') {
+    status = 'error'
+    label = displayState.message
+  } else if (displayState.status === 'empty') {
+    status = 'empty'
+    label = 'No USD price history available.'
+  }
+
+  if (!status) return null
+
+  const role = status === 'error' ? 'alert' : 'status'
 
   return (
-    <div className={`price-chart__status price-chart__status--${state.status}`} role={role}>
+    <div className={`price-chart__status price-chart__status--${status}`} role={role}>
       <span>{label}</span>
     </div>
   )
 }
 
-export function PriceChart({ market, interval = DEFAULT_INTERVAL }: PriceChartProps) {
+export function PriceChart({ market, ethUsdPriceState, interval = DEFAULT_INTERVAL }: PriceChartProps) {
   const queryClient = useQueryClient()
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -250,7 +305,9 @@ export function PriceChart({ market, interval = DEFAULT_INTERVAL }: PriceChartPr
     queryFn: ({ signal }) => loadCandles(market.repoId, interval, signal),
     refetchInterval: MARKET_LIVE_REFETCH_INTERVAL_MS,
   })
-  const state = stateFromQuery(candlesQuery.data, candlesQuery.status, candlesQuery.error)
+  const candleState = stateFromQuery(candlesQuery.data, candlesQuery.status, candlesQuery.error)
+  const displayState = stateFromUsdConversion(candleState, ethUsdPriceState)
+  const ethUsdPrice = ethUsdPriceState.status === 'ready' ? ethUsdPriceState.usdPrice : null
 
   useSubscription<unknown>('candles', market.repoId, (payload) => {
     const candle = parseCandle(payload)
@@ -359,7 +416,7 @@ export function PriceChart({ market, interval = DEFAULT_INTERVAL }: PriceChartPr
   }, [])
 
   useEffect(() => {
-    const candles = candlesQuery.data ?? []
+    const candles = ethUsdPrice == null ? [] : toUsdCandles(candlesQuery.data ?? [], ethUsdPrice) ?? []
     const lastCandle = candles.at(-1)
     const colors = chartColorsRef.current
 
@@ -374,14 +431,14 @@ export function PriceChart({ market, interval = DEFAULT_INTERVAL }: PriceChartPr
 
     chartRef.current?.timeScale().fitContent()
     fittedDataKeyRef.current = fitKey
-  }, [candlesQuery.data, decimals, interval, market.repoId])
+  }, [candlesQuery.data, decimals, ethUsdPrice, interval, market.repoId])
 
   return (
-    <section className="price-chart" aria-label={`${market.baseTokenSymbol}/${market.quoteTokenSymbol} price chart`}>
+    <section className="price-chart" aria-label={`${market.baseTokenSymbol}/USD price chart`}>
       <div className="price-chart__surface">
         <div ref={containerRef} className="price-chart__canvas" />
-        <PriceChartLegend market={market} interval={interval} state={state} />
-        <PriceChartStatus state={state} />
+        <PriceChartLegend market={market} interval={interval} state={displayState} />
+        <PriceChartStatus candleState={candleState} ethUsdPriceState={ethUsdPriceState} displayState={displayState} />
       </div>
     </section>
   )
