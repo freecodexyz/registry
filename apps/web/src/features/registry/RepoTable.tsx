@@ -1,3 +1,4 @@
+import type { KeyboardEvent, MouseEvent } from 'react'
 import githubLogoUrl from '../../assets/GitHub_Invertocat_Black.svg'
 import { Notice, Table, TableCell, TableHeader, TableViewport } from '@freecodexyz/ui'
 import { explorerAddressUrl } from '../../shared/explorers'
@@ -13,8 +14,25 @@ function formatRegisteredAt(timestamp: number) {
   return COMPACT_DATE.format(new Date(timestamp * 1000))
 }
 
+function isInteractiveRowTarget(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest('a, button, input, select, textarea'))
+}
+
 export function RepoTable({ repos, onSelectRepo, emptyMessage }: { repos: Repo[]; onSelectRepo: (repo: Repo) => void; emptyMessage: string }) {
   if (repos.length === 0) return <Notice>{emptyMessage}</Notice>
+
+  function handleRowClick(event: MouseEvent<HTMLTableRowElement>, repo: Repo) {
+    if (isInteractiveRowTarget(event.target)) return
+    onSelectRepo(repo)
+  }
+
+  function handleRowKeyDown(event: KeyboardEvent<HTMLTableRowElement>, repo: Repo) {
+    if (isInteractiveRowTarget(event.target)) return
+    if (event.key !== 'Enter' && event.key !== ' ') return
+
+    event.preventDefault()
+    onSelectRepo(repo)
+  }
 
   return (
     <TableViewport>
@@ -27,7 +45,6 @@ export function RepoTable({ repos, onSelectRepo, emptyMessage }: { repos: Repo[]
             <TableHeader>address</TableHeader>
             <TableHeader>owner</TableHeader>
             <TableHeader>registered_at</TableHeader>
-            <TableHeader>details</TableHeader>
           </tr>
         </thead>
         <tbody>
@@ -37,7 +54,15 @@ export function RepoTable({ repos, onSelectRepo, emptyMessage }: { repos: Repo[]
             const registeredDate = new Date(repo.registeredAt * 1000)
 
             return (
-              <tr key={repo.repoId} className="repo-table-row">
+              <tr
+                key={repo.repoId}
+                className="repo-table-row"
+                tabIndex={0}
+                role="button"
+                aria-label={`Open details for ${github?.fullName ?? repo.repoId}`}
+                onClick={(event) => handleRowClick(event, repo)}
+                onKeyDown={(event) => handleRowKeyDown(event, repo)}
+              >
                 <TableCell>
                   {github ? (
                     <a className="repo-github-link fcf-link" href={github.htmlUrl} target="_blank" rel="noreferrer">
@@ -73,11 +98,6 @@ export function RepoTable({ repos, onSelectRepo, emptyMessage }: { repos: Repo[]
                 </TableCell>
                 <TableCell mono>
                   <time className="repo-date" dateTime={registeredDate.toISOString()}>{formatRegisteredAt(repo.registeredAt)}</time>
-                </TableCell>
-                <TableCell mono>
-                  <button className="repo-details-button" type="button" onClick={() => onSelectRepo(repo)} aria-label={`Open details for ${github?.fullName ?? repo.repoId}`}>
-                    open
-                  </button>
                 </TableCell>
               </tr>
             )
