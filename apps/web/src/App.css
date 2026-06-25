@@ -1147,6 +1147,16 @@
   padding-right: 0;
 }
 
+.repo-table-row {
+  cursor: pointer;
+}
+
+.repo-table-row:focus-visible {
+  outline: var(--bw) solid var(--accent);
+  outline-offset: calc(var(--bw) * -1);
+  background: var(--bg-soft);
+}
+
 .repo-github-link,
 .repo-stars,
 .repo-address,
@@ -1186,27 +1196,6 @@
 .repo-address,
 .repo-date {
   white-space: nowrap;
-}
-
-.repo-details-button {
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: var(--fg-dim);
-  cursor: pointer;
-  font: inherit;
-  font-family: var(--mono);
-  font-size: var(--t-micro);
-  letter-spacing: var(--ls-mono);
-  text-transform: uppercase;
-  text-decoration: underline;
-  text-decoration-thickness: var(--bw);
-  text-underline-offset: 4px;
-}
-
-.repo-details-button:hover,
-.repo-details-button:focus-visible {
-  color: var(--fg);
 }
 
 .repo-drawer-scrim {
