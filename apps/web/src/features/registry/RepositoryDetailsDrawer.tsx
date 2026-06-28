@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import githubLogoUrl from '../../assets/GitHub_Invertocat_Black.svg'
 import { Button, ButtonLink } from '@freecodexyz/ui'
+import { FiCopy } from 'react-icons/fi'
 import { chainLabel, explorerAddressUrl, explorerBlockUrl, explorerTxUrl } from '../../shared/explorers'
 import type { Repo } from './repositoryTypes'
 
@@ -109,10 +110,7 @@ function OpenRepositoryDetailsDrawer({ repo, onClose }: { repo: Repo; onClose: (
                 <dd className="repo-copy-value">
                   <span title={repo.registrant}>{truncateMiddle(repo.registrant)}</span>
                   <button className="repo-copy-button" type="button" onClick={copyRegistrant} aria-label="Copy registrant address">
-                    <svg viewBox="0 0 20 20" aria-hidden="true">
-                      <path d="M7 2.5h8.5V12H14V4H7V2.5Z" />
-                      <path d="M4.5 6h8.5v11.5H4.5V6Zm1.5 1.5V16h5.5V7.5H6Z" />
-                    </svg>
+                    <FiCopy aria-hidden="true" focusable="false" />
                   </button>
                 </dd>
               </div>
