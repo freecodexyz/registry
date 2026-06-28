@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { FiMenu } from 'react-icons/fi'
 import { Link, NavLink } from 'react-router'
 import { Notice } from '@freecodexyz/ui'
 import { ConnectButton } from '../features/auth/ConnectButton'
@@ -53,9 +54,7 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
             }}
           >
             <button className="top-navbar__menu-button" type="button" aria-label="Open navigation menu" aria-haspopup="menu" aria-expanded={isMenuOpen} onClick={() => setIsMenuOpen((open) => !open)}>
-              <svg viewBox="0 0 20 20" aria-hidden="true">
-                <path d="M3 5h14v1.5H3V5Zm0 4.25h14v1.5H3v-1.5ZM3 13.5h14V15H3v-1.5Z" />
-              </svg>
+              <FiMenu aria-hidden="true" focusable="false" />
             </button>
             {isMenuOpen && (
               <div className="top-navbar__mobile-menu-panel" role="menu">
