@@ -35,6 +35,6 @@ COPY --from=build /app/apps/api/dist ./dist
 
 RUN mkdir -p /data
 
-EXPOSE 3000
+EXPOSE 3000 3055
 
 CMD ["sh", "-c", "if [ \"$INDEXER\" = \"true\" ] || [ \"$INDEXER\" = \"1\" ]; then ./node_modules/.bin/tsx src/indexer.ts; else ./node_modules/.bin/tsx src/index.ts; fi"]

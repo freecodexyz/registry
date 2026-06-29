@@ -17,7 +17,10 @@ services:
       ALLOWED_ORIGINS:        ${ALLOWED_ORIGINS}
       DB_PATH:                /data/registry.db
       INDEXER:                "false"
+      EVENTS_SOCKET_LISTEN_HOST: 0.0.0.0
+      EVENTS_SOCKET_PORT:     ${EVENTS_SOCKET_PORT:-3055}
     volumes:  ["registry-data:/data"]
+    expose:   ["${EVENTS_SOCKET_PORT:-3055}"]
     ports:    ["${API_PUBLISHED_PORT:-3000}:3000"]
   
   indexer:
@@ -37,7 +40,10 @@ services:
       GITHUB_TOKEN:           ${GITHUB_TOKEN}
       DB_PATH:                /data/registry.db
       INDEXER:                "true" 
+      EVENTS_SOCKET_HOST:     api
+      EVENTS_SOCKET_PORT:     ${EVENTS_SOCKET_PORT:-3055}
     volumes:  ["registry-data:/data"]
+    depends_on: [api]
 
   web:
     build:

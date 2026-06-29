@@ -11,6 +11,7 @@ import { fetchOwnerUsername, fetchRepoMetaData, getGhClient, RepoMetaData } from
 import { getMeta, insertRepo, listRepos, upsertMeta, db, type GithubMetaRow, type MarketRow, type RepoRow } from "./db";
 import { FastifySSEPlugin } from "fastify-sse-v2";
 import { registryEvents } from "./events";
+import { EventsSocket, type EventMessage } from "./events-socket";
 import rateLimit from "@fastify/rate-limit";
 import { registerCandles } from "./candles";
 import { registerDepth } from "./depth";
@@ -37,6 +38,9 @@ const SHOULD_RUN_INDEXER            = process.env.INDEXER === "1" || process.env
 const CHAIN_ID                      = baseSepolia.id;
 const LAUNCHER_ADDRESS              = process.env.LAUNCHER_ADDRESS as `0x${string}` | undefined;
 const V4_POOL_MANAGER               = process.env.V4_POOL_MANAGER as `0x${string}` | undefined;
+const EVENTS_SOCKET_HOST            = (!process.env.EVENTS_SOCKET_HOST || process.env.EVENTS_SOCKET_HOST === "") ? "127.0.0.1" : process.env.EVENTS_SOCKET_HOST;
+const EVENTS_SOCKET_LISTEN_HOST     = (!process.env.EVENTS_SOCKET_LISTEN_HOST || process.env.EVENTS_SOCKET_LISTEN_HOST === "") ? EVENTS_SOCKET_HOST : process.env.EVENTS_SOCKET_LISTEN_HOST;
+const EVENTS_SOCKET_PORT            = readPort(process.env.EVENTS_SOCKET_PORT, 3055, "EVENTS_SOCKET_PORT");
 
 
 // server can't start with these
@@ -62,6 +66,15 @@ const SwapEvent = parseAbiItem("event Swap(bytes32 indexed id, address indexed s
 const app = fastify({ logger: true });
 
 try { registerOrigins(ALLOWED_ORIGINS); } catch (err) { die(err); }
+
+if (!SHOULD_RUN_INDEXER) {
+    EventsSocket.create({
+        host: EVENTS_SOCKET_HOST,
+        listenHost: EVENTS_SOCKET_LISTEN_HOST,
+        port: EVENTS_SOCKET_PORT,
+        onError: (err) => app.log.warn({ err }, "events socket error"),
+    }).attach(handleEventsSocketMessage);
+}
 
 // Process-local L1 cache only. SQLite remains the durable layer so restarts do not
 // immediately fan out to the RPC node and GitHub API again.
@@ -441,6 +454,41 @@ function readAddress(address: unknown): `0x${string}` {
 function readSignature(signature: unknown): `0x${string}` {
     if (typeof signature !== "string" || !signature.startsWith("0x")) throw httpErrors.badRequest("signature required");
     return signature as `0x${string}`;
+}
+
+function readPort(value: string | undefined, fallback: number, name: string): number {
+    if (!value || value === "") return fallback;
+
+    const port = Number(value);
+    if (!Number.isInteger(port) || port < 1 || port > 65_535) die(new Error(`${name} must be a valid TCP port`));
+    return port;
+}
+
+function handleEventsSocketMessage(message: EventMessage): void {
+    if (message.topic === "repo") {
+        registryEvents.emit("repo", message.payload);
+        return;
+    }
+
+    if (message.topic === "event") {
+        if (!isHubEventPayload(message.payload)) {
+            app.log.warn({ topic: message.topic }, "invalid events socket payload");
+            return;
+        }
+
+        registryEvents.emit("event", message.payload.key, message.payload.payload);
+        return;
+    }
+
+    app.log.warn({ topic: message.topic }, "unknown events socket topic");
+}
+
+function isHubEventPayload(value: unknown): value is { key: string; payload: unknown } {
+    return isRecord(value) && typeof value.key === "string" && value.key.length > 0 && "payload" in value;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null;
 }
 
 function registerOrigins(origins: string[]): void {

@@ -2,10 +2,12 @@ import { decodeEventLog, parseAbiItem, type Address, type Hash, type Hex } from 
 import { db, insertMarket, insertRepo, insertTrade, upsertMeta } from "./db";
 import { client, RIK_ADDRESS, RepoRegisteredEvent, MarketLaunchedEvent, SwapEvent, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID, LAUNCHER_ADDRESS, V4_POOL_MANAGER } from "./index";
 import { fetchOwnerUsername, fetchRepoMetaData, getGhClient } from "./github";
-import { registryEvents } from "./events";
+import { EventsSocket, type EventMessage } from "./events-socket";
 
 const POLL_MS   = 12_000;
 const SHOULD_RUN_INDEXER = process.env.INDEXER === "1" || process.env.INDEXER?.toLowerCase() === "true";
+const EVENTS_SOCKET_HOST = (!process.env.EVENTS_SOCKET_HOST || process.env.EVENTS_SOCKET_HOST === "") ? "127.0.0.1" : process.env.EVENTS_SOCKET_HOST;
+const EVENTS_SOCKET_PORT = readPort(process.env.EVENTS_SOCKET_PORT, 3055, "EVENTS_SOCKET_PORT");
 const INDEXER_STATE_KEY = `last_block:${CHAIN_ID}:${RIK_ADDRESS.toLowerCase()}`;
 const INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
 const INTERVAL_SECS = {
@@ -24,6 +26,11 @@ const AirlockCreateEvent = parseAbiItem("event Create(address asset, address ind
 const PoolManagerInitializeEvent = parseAbiItem("event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)");
 
 const gh = getGhClient();
+const eventsSocket = EventsSocket.create({
+    host: EVENTS_SOCKET_HOST,
+    port: EVENTS_SOCKET_PORT,
+    onError: (error) => console.error("events socket error", error),
+});
 const blockTimestampCache = new Map<bigint, number>();
 
 type TradePayload = {
@@ -106,7 +113,31 @@ export async function tick() {
             );
         }
     }) 
+
     launchTx(launchesParsed);
+
+    // best effort enrichment
+    for (const l of repoCreatedLogs) {
+        const [metadata, ownerUsername] = await Promise.all([
+            fetchRepoMetaData(gh, Number(l.args.repoId)),
+            fetchOwnerUsername(gh, l.args.githubOwnerId),
+        ]);
+        upsertMeta.run(String(l.args.repoId), metadata?.fullName ?? null, metadata?.description ?? null,
+            metadata?.language ?? null, metadata?.stars ?? null, metadata?.htmlUrl ?? null, ownerUsername, Date.now());
+
+        publishEventMessage({ topic: "repo", payload: {
+            repoId: String(l.args.repoId),
+            registrant: l.args.registrant,
+            githubOwnerId: Number(l.args.githubOwnerId),
+            githubOwnerUsername: ownerUsername ?? "not found",
+            registeredAt: Number(l.args.registeredAt),
+            blockNumber: Number(l.blockNumber),
+            transactionHash: l.transactionHash ?? null,
+            chainId: CHAIN_ID,
+            registryAddress: RIK_ADDRESS,
+            github: metadata ?? "not found",
+        } });
+    }
 
     // Market pool swap events
     const knownPools = new Map<Hex, string>((() => {
@@ -114,6 +145,7 @@ export async function tick() {
         return rows.map((r: any) => [r.pool_id.toLowerCase(), r.repo_id])
     })()
     );
+
     if (knownPools.size === 0) return; // <-- nothing to index yet
 
     const swaps = await client.getLogs({
@@ -161,29 +193,6 @@ export async function tick() {
    
 
     setLastIndexedBlock(head);
-
-    // best effort enrichment
-    for (const l of repoCreatedLogs) {
-        const [metadata, ownerUsername] = await Promise.all([
-            fetchRepoMetaData(gh, Number(l.args.repoId)),
-            fetchOwnerUsername(gh, l.args.githubOwnerId),
-        ]);
-        upsertMeta.run(String(l.args.repoId), metadata?.fullName ?? null, metadata?.description ?? null,
-            metadata?.language ?? null, metadata?.stars ?? null, metadata?.htmlUrl ?? null, ownerUsername, Date.now());
-        
-        registryEvents.emit("repo", {
-            repoId: String(l.args.repoId),
-            registrant: l.args.registrant,
-            githubOwnerId: Number(l.args.githubOwnerId),
-            githubOwnerUsername: ownerUsername ?? "not found",
-            registeredAt: Number(l.args.registeredAt),
-            blockNumber: Number(l.blockNumber),
-            transactionHash: l.transactionHash ?? null,
-            chainId: CHAIN_ID,
-            registryAddress: RIK_ADDRESS,
-            github: metadata ?? "not found",
-        });
-    }
 }
 
 // helpers
@@ -276,10 +285,28 @@ function emitLiveTrade(tradePayload: TradePayload): void {
             repoId, bucket, bucket + secs - 1,
         ) as CandlePayload | undefined;
 
-        if (row) registryEvents.emit("event", `candles:${repoId}:${interval}`, row);
+        if (row) publishLiveEvent(`candles:${repoId}:${interval}`, row);
     }
 
-    registryEvents.emit("event", `trades:${repoId}`, tradePayload);
+    publishLiveEvent(`trades:${repoId}`, tradePayload);
+}
+
+function publishLiveEvent(key: string, payload: unknown): void {
+    publishEventMessage({ topic: "event", payload: { key, payload } });
+}
+
+function publishEventMessage(message: EventMessage): void {
+    eventsSocket.write(message).catch((error: unknown) => {
+        console.error("failed to publish live event", error);
+    });
+}
+
+function readPort(value: string | undefined, fallback: number, name: string): number {
+    if (!value || value === "") return fallback;
+
+    const port = Number(value);
+    if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error(`${name} must be a valid TCP port`);
+    return port;
 }
 
 async function cacheBlockTimestamp(blockNumber: bigint): Promise<void> {
