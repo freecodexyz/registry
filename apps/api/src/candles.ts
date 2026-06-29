@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { httpErrors } from "@fastify/sensible";
-import { db } from "./db";
+import { db } from "./db/db";
 
 const INTERVAL_SECS = {
 "1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14_400, "1d": 86_400,

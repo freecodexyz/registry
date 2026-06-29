@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { httpErrors } from "@fastify/sensible";
 import { stateViewAbi } from "./abi/stateView";
 import { client, STATE_VIEW } from "./index";
-import { db, type MarketRow } from "./db";
+import { db, type MarketRow } from "./db/db";
 
 const Q96 = 2n ** 96n;
 

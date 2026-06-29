@@ -8,7 +8,7 @@ import { generateNonce, SiweMessage } from "siwe";
 import secureSession from "@fastify/secure-session";
 import { randomBytes } from 'node:crypto'
 import { fetchOwnerUsername, fetchRepoMetaData, getGhClient, RepoMetaData } from "./github";
-import { getMeta, insertRepo, listRepos, upsertMeta, db, type GithubMetaRow, type MarketRow, type RepoRow } from "./db";
+import { getMeta, insertRepo, listRepos, upsertMeta, db, type GithubMetaRow, type MarketRow, type RepoRow } from "./db/db";
 import { FastifySSEPlugin } from "fastify-sse-v2";
 import { registryEvents } from "./events";
 import { EventsSocket, type EventMessage } from "./events-socket";

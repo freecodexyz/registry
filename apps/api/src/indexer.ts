@@ -1,5 +1,5 @@
 import { decodeEventLog, parseAbiItem, type Address, type Hash, type Hex } from "viem";
-import { db, insertMarket, insertRepo, insertTrade, upsertMeta } from "./db";
+import { db, insertMarket, insertRepo, insertTrade, upsertMeta } from "./db/db";
 import { client, RIK_ADDRESS, RepoRegisteredEvent, MarketLaunchedEvent, SwapEvent, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID, LAUNCHER_ADDRESS, V4_POOL_MANAGER } from "./index";
 import { fetchOwnerUsername, fetchRepoMetaData, getGhClient } from "./github";
 import { EventsSocket, type EventMessage } from "./events-socket";
