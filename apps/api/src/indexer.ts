@@ -3,6 +3,7 @@ import { db, insertMarket, insertRepo, insertTrade, upsertMeta } from "./db";
 import { client, RIK_ADDRESS, RepoRegisteredEvent, MarketLaunchedEvent, SwapEvent, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID, LAUNCHER_ADDRESS, V4_POOL_MANAGER } from "./index";
 import { fetchOwnerUsername, fetchRepoMetaData, getGhClient } from "./github";
 import { EventsSocket, type EventMessage } from "./events-socket";
+import { LogsFetcher } from "./indexer/fetch-logs";
 
 const POLL_MS   = 12_000;
 const SHOULD_RUN_INDEXER = process.env.INDEXER === "1" || process.env.INDEXER?.toLowerCase() === "true";
@@ -26,6 +27,7 @@ const AirlockCreateEvent = parseAbiItem("event Create(address asset, address ind
 const PoolManagerInitializeEvent = parseAbiItem("event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)");
 
 const gh = getGhClient();
+const logsFetcher = new LogsFetcher(client, DEFAULT_LIST_BLOCK_RANGE);
 const eventsSocket = EventsSocket.create({
     host: EVENTS_SOCKET_HOST,
     port: EVENTS_SOCKET_PORT,
@@ -79,7 +81,7 @@ export async function tick() {
     if (from > head) return;
 
     // RIK Minting events
-    const repoCreatedLogs = await client.getLogs({
+    const repoCreatedLogs = await logsFetcher.getLogs({
         address: RIK_ADDRESS, event: RepoRegisteredEvent, fromBlock: from, toBlock: head
     });
     const repoCreatedTx = db.transaction((logs: any[]) => {
@@ -94,7 +96,7 @@ export async function tick() {
     repoCreatedTx(repoCreatedLogs);
 
     // RIKLauncher Events -> market creation
-    const launchLogs = await client.getLogs({
+    const launchLogs = await logsFetcher.getLogs({
         address: LAUNCHER_ADDRESS, event: MarketLaunchedEvent, fromBlock: from, toBlock: head
     });
 
@@ -148,7 +150,7 @@ export async function tick() {
 
     if (knownPools.size === 0) return; // <-- nothing to index yet
 
-    const swaps = await client.getLogs({
+    const swaps = await logsFetcher.getLogs({
         address: V4_POOL_MANAGER, event: SwapEvent,
         args: { id: Array.from(knownPools.keys()) as `0x${string}`[] },
         fromBlock: from, toBlock: head
