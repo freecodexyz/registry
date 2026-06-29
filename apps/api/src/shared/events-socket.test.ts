@@ -1,7 +1,7 @@
 // @ts-ignore
 import { createConnection } from "node:net";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { EventsSocket, type EventMessage } from "./events-socket";
+import { EventsSocket, type EventMessage } from "../shared/events-socket";
 
 // @ts-ignore
 const TEST_PORT = 30_000 + (process.pid % 10_000);

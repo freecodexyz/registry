@@ -11,7 +11,7 @@ import { fetchOwnerUsername, fetchRepoMetaData, getGhClient, RepoMetaData } from
 import { getMeta, insertRepo, listRepos, upsertMeta, db, type GithubMetaRow, type MarketRow, type RepoRow } from "./db/db";
 import { FastifySSEPlugin } from "fastify-sse-v2";
 import { registryEvents } from "./events";
-import { EventsSocket, type EventMessage } from "./events-socket";
+import { EventsSocket, type EventMessage } from "./shared/events-socket";
 import rateLimit from "@fastify/rate-limit";
 import { registerCandles } from "./candles";
 import { registerDepth } from "./depth";
