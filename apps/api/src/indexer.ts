@@ -1,11 +1,12 @@
-import { decodeEventLog, parseAbiItem, type Address, type Hash, type Hex } from "viem";
-import { db, insertMarket, insertTrade } from "./db/db";
+import type { Address, Hash, Hex } from "viem";
+import { db, insertTrade } from "./db/db";
 import { client, RIK_ADDRESS, RepoRegisteredEvent, MarketLaunchedEvent, SwapEvent, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID, LAUNCHER_ADDRESS, V4_POOL_MANAGER } from "./index";
 import { getGhClient } from "./github";
 import { EventsSocket, type EventMessage } from "./shared/events-socket";
 import { BlockCheckpointStore } from "./indexer/checkpoint";
 import { IndexerEngine } from "./indexer/engine";
 import { LogsFetcher } from "./indexer/fetch-logs";
+import { MarketLaunchIndexer } from "./indexer/market-launches";
 import { RepoRegistrationIndexer } from "./indexer/repo-registrations";
 import type { BlockRange } from "./indexer/engine";
 
@@ -27,9 +28,6 @@ const SQRT_TO_PRICE_SQL = `
 POW(CAST(sqrtPriceX96 AS REAL) / POW(2.0, 96), 2)
 `;
 
-const AirlockCreateEvent = parseAbiItem("event Create(address asset, address indexed numeraire, address initializer, address poolOrHook)");
-const PoolManagerInitializeEvent = parseAbiItem("event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)");
-
 const gh = getGhClient();
 const logsFetcher = new LogsFetcher(client, DEFAULT_LIST_BLOCK_RANGE);
 const checkpoint = new BlockCheckpointStore({
@@ -50,6 +48,12 @@ const repoRegistrations = new RepoRegistrationIndexer({
     logsFetcher,
     github: gh,
     publishEventMessage,
+});
+const marketLaunches = new MarketLaunchIndexer({
+    address: LAUNCHER_ADDRESS,
+    event: MarketLaunchedEvent,
+    logsFetcher,
+    receiptClient: client,
 });
 const blockTimestampCache = new Map<bigint, number>();
 const indexer = new IndexerEngine({
@@ -87,27 +91,7 @@ async function indexRange({ fromBlock: from, toBlock: head }: BlockRange): Promi
     repoRegistrations.insert(repoCreatedLogs);
 
     // RIKLauncher Events -> market creation
-    const launchLogs = await logsFetcher.getLogs({
-        address: LAUNCHER_ADDRESS, event: MarketLaunchedEvent, fromBlock: from, toBlock: head
-    });
-
-    // we first loop through the logs cause doing it inside db.transaction is not safe can result in bad data ending up in the db
-    const launchesParsed = await Promise.all(launchLogs.map(async (log) => ({
-        log,
-        ...(await parseHookFromTx(log.transactionHash)),
-    })));
-
-    const launchTx = db.transaction((rows: typeof launchesParsed) => {
-        for (const { log: l, hook, poolId, currency0, currency1, fee, tickSpacing } of rows) {
-            insertMarket.run(
-                String(l.args.repoId), l.args.asset, hook, poolId,
-                currency0, currency1, fee, tickSpacing,
-                Number(l.blockNumber), l.args.launcher,
-            );
-        }
-    }) 
-
-    launchTx(launchesParsed);
+    await marketLaunches.index({ fromBlock: from, toBlock: head });
 
     // best effort enrichment
     await repoRegistrations.enrich(repoCreatedLogs);
@@ -166,64 +150,6 @@ async function indexRange({ fromBlock: from, toBlock: head }: BlockRange): Promi
 }
 
 // helpers
-type ParseHookResult = {
-    hook: Address;
-    poolId: Hex;
-    currency0: Address;
-    currency1: Address;
-    fee: number;
-    tickSpacing: number;
-};
-type AirlockCreateDecoded = { args: { poolOrHook: Address } };
-type PoolManagerInitializeDecoded = {
-    args: {
-        id: Hex;
-        currency0: Address;
-        currency1: Address;
-        fee: number;
-        tickSpacing: number;
-        hooks: Address;
-    };
-};
-
-async function parseHookFromTx(tx: Hash | null): Promise<ParseHookResult> {
-    if (!tx) throw new Error("market launch log is missing transaction hash");
-
-    const receipt = await client.getTransactionReceipt({ hash: tx });
-    let hook: Address | undefined;
-    let pool: Omit<ParseHookResult, "hook"> | undefined;
-
-    for (const log of receipt.logs) {
-        try {
-            const decoded = decodeEventLog({
-                abi: [AirlockCreateEvent],
-                data: log.data,
-                topics: log.topics,
-            }) as AirlockCreateDecoded;
-            hook = decoded.args.poolOrHook;
-        } catch {}
-
-        try {
-            const decoded = decodeEventLog({
-                abi: [PoolManagerInitializeEvent],
-                data: log.data,
-                topics: log.topics,
-            }) as PoolManagerInitializeDecoded;
-            pool = {
-                poolId: decoded.args.id,
-                currency0: decoded.args.currency0,
-                currency1: decoded.args.currency1,
-                fee: decoded.args.fee,
-                tickSpacing: decoded.args.tickSpacing,
-            };
-        } catch {}
-
-        if (hook && pool) return { hook, ...pool };
-    }
-
-    throw new Error(`missing Airlock Create or PoolManager Initialize event in tx ${tx}`);
-};
-
 function blockTs(blockNumber: bigint): number {
     const cached = blockTimestampCache.get(blockNumber);
     if (cached == null) throw new Error(`missing timestamp for block ${blockNumber}`);
