@@ -1,11 +1,12 @@
 import { decodeEventLog, parseAbiItem, type Address, type Hash, type Hex } from "viem";
-import { db, insertMarket, insertRepo, insertTrade, upsertMeta } from "./db/db";
+import { db, insertMarket, insertTrade } from "./db/db";
 import { client, RIK_ADDRESS, RepoRegisteredEvent, MarketLaunchedEvent, SwapEvent, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID, LAUNCHER_ADDRESS, V4_POOL_MANAGER } from "./index";
-import { fetchOwnerUsername, fetchRepoMetaData, getGhClient } from "./github";
+import { getGhClient } from "./github";
 import { EventsSocket, type EventMessage } from "./shared/events-socket";
 import { BlockCheckpointStore } from "./indexer/checkpoint";
 import { IndexerEngine } from "./indexer/engine";
 import { LogsFetcher } from "./indexer/fetch-logs";
+import { RepoRegistrationIndexer } from "./indexer/repo-registrations";
 import type { BlockRange } from "./indexer/engine";
 
 const POLL_MS   = 12_000;
@@ -41,6 +42,15 @@ const eventsSocket = EventsSocket.create({
     port: EVENTS_SOCKET_PORT,
     onError: (error) => console.error("events socket error", error),
 });
+const repoRegistrations = new RepoRegistrationIndexer({
+    address: RIK_ADDRESS,
+    event: RepoRegisteredEvent,
+    chainId: CHAIN_ID,
+    registryAddress: RIK_ADDRESS,
+    logsFetcher,
+    github: gh,
+    publishEventMessage,
+});
 const blockTimestampCache = new Map<bigint, number>();
 const indexer = new IndexerEngine({
     client,
@@ -73,19 +83,8 @@ type CandlePayload = {
 async function indexRange({ fromBlock: from, toBlock: head }: BlockRange): Promise<void> {
 
     // RIK Minting events
-    const repoCreatedLogs = await logsFetcher.getLogs({
-        address: RIK_ADDRESS, event: RepoRegisteredEvent, fromBlock: from, toBlock: head
-    });
-    const repoCreatedTx = db.transaction((logs: any[]) => {
-        for (const l of logs) {
-            insertRepo.run(
-                String(l.args.repoId), l.args.registrant,
-                Number(l.args.githubOwnerId), Number(l.args.registeredAt),
-                Number(l.blockNumber), l.transactionHash ?? null, CHAIN_ID
-            );
-        }
-    });
-    repoCreatedTx(repoCreatedLogs);
+    const repoCreatedLogs = await repoRegistrations.fetch({ fromBlock: from, toBlock: head });
+    repoRegistrations.insert(repoCreatedLogs);
 
     // RIKLauncher Events -> market creation
     const launchLogs = await logsFetcher.getLogs({
@@ -111,27 +110,7 @@ async function indexRange({ fromBlock: from, toBlock: head }: BlockRange): Promi
     launchTx(launchesParsed);
 
     // best effort enrichment
-    for (const l of repoCreatedLogs) {
-        const [metadata, ownerUsername] = await Promise.all([
-            fetchRepoMetaData(gh, Number(l.args.repoId)),
-            fetchOwnerUsername(gh, l.args.githubOwnerId),
-        ]);
-        upsertMeta.run(String(l.args.repoId), metadata?.fullName ?? null, metadata?.description ?? null,
-            metadata?.language ?? null, metadata?.stars ?? null, metadata?.htmlUrl ?? null, ownerUsername, Date.now());
-
-        publishEventMessage({ topic: "repo", payload: {
-            repoId: String(l.args.repoId),
-            registrant: l.args.registrant,
-            githubOwnerId: Number(l.args.githubOwnerId),
-            githubOwnerUsername: ownerUsername ?? "not found",
-            registeredAt: Number(l.args.registeredAt),
-            blockNumber: Number(l.blockNumber),
-            transactionHash: l.transactionHash ?? null,
-            chainId: CHAIN_ID,
-            registryAddress: RIK_ADDRESS,
-            github: metadata ?? "not found",
-        } });
-    }
+    await repoRegistrations.enrich(repoCreatedLogs);
 
     // Market pool swap events
     const knownPools = new Map<Hex, string>((() => {
