@@ -1,10 +1,15 @@
 import type { FastifyInstance } from "fastify";
 import { httpErrors } from "@fastify/sensible";
-import { stateViewAbi } from "./abi/stateView";
+import { parseAbiItem } from "viem";
 import { client, STATE_VIEW } from "./index";
 import { db, type MarketRow } from "./db/db";
 
 const Q96 = 2n ** 96n;
+const StateViewGetSlot0 = parseAbiItem("function getSlot0(bytes32 poolId) view returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee)");
+const StateViewGetLiquidity = parseAbiItem("function getLiquidity(bytes32 poolId) view returns (uint128 liquidity)");
+const StateViewGetTickBitmap = parseAbiItem("function getTickBitmap(bytes32 poolId, int16 tick) view returns (uint256 tickBitmap)");
+const StateViewGetTickLiquidity = parseAbiItem("function getTickLiquidity(bytes32 poolId, int24 tick) view returns (uint128 liquidityGross, int128 liquidityNet)");
+const stateViewAbi = [StateViewGetSlot0, StateViewGetLiquidity, StateViewGetTickBitmap, StateViewGetTickLiquidity] as const;
 
 const tickToPrice = (tick: number) => Math.pow(1.0001, tick);
 const sqrtRatioAtTick = (tick: number) => BigInt(Math.floor(Math.sqrt(tickToPrice(tick)) * Number(Q96)));
