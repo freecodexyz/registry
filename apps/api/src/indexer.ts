@@ -3,7 +3,10 @@ import { db, insertMarket, insertRepo, insertTrade, upsertMeta } from "./db/db";
 import { client, RIK_ADDRESS, RepoRegisteredEvent, MarketLaunchedEvent, SwapEvent, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID, LAUNCHER_ADDRESS, V4_POOL_MANAGER } from "./index";
 import { fetchOwnerUsername, fetchRepoMetaData, getGhClient } from "./github";
 import { EventsSocket, type EventMessage } from "./events-socket";
+import { BlockCheckpointStore } from "./indexer/checkpoint";
+import { IndexerEngine } from "./indexer/engine";
 import { LogsFetcher } from "./indexer/fetch-logs";
+import type { BlockRange } from "./indexer/engine";
 
 const POLL_MS   = 12_000;
 const SHOULD_RUN_INDEXER = process.env.INDEXER === "1" || process.env.INDEXER?.toLowerCase() === "true";
@@ -28,12 +31,22 @@ const PoolManagerInitializeEvent = parseAbiItem("event Initialize(bytes32 indexe
 
 const gh = getGhClient();
 const logsFetcher = new LogsFetcher(client, DEFAULT_LIST_BLOCK_RANGE);
+const checkpoint = new BlockCheckpointStore({
+    db,
+    key: INDEXER_STATE_KEY,
+    maxLookbackBlocks: DEFAULT_LIST_BLOCK_RANGE,
+});
 const eventsSocket = EventsSocket.create({
     host: EVENTS_SOCKET_HOST,
     port: EVENTS_SOCKET_PORT,
     onError: (error) => console.error("events socket error", error),
 });
 const blockTimestampCache = new Map<bigint, number>();
+const indexer = new IndexerEngine({
+    client,
+    checkpoint,
+    steps: [{ name: "legacy-indexer", index: indexRange }],
+});
 
 type TradePayload = {
     txHash: Hash;
@@ -57,28 +70,7 @@ type CandlePayload = {
     volume: number | null;
 };
 
-async function getLastIndexedBlock(head: bigint): Promise<bigint> {
-    const row = db.prepare("SELECT value FROM indexer_state WHERE key=?").get(INDEXER_STATE_KEY) as { value: string } | undefined;
-    const oldestAvailableBlock = head > DEFAULT_LIST_BLOCK_RANGE ? head - DEFAULT_LIST_BLOCK_RANGE : 0n;
-    const lastIndexedBlock = row ? BigInt(row.value) : oldestAvailableBlock;
-    if (lastIndexedBlock < oldestAvailableBlock) {
-        setLastIndexedBlock(oldestAvailableBlock);
-        return oldestAvailableBlock;
-    }
-    return lastIndexedBlock;
-}
-
-function setLastIndexedBlock(n: bigint) {
-    db.prepare(
-        "INSERT INTO indexer_state (key, value) VALUES (?, ?) " +
-        "ON CONFLICT(key) DO UPDATE SET value=excluded.value"
-    ).run(INDEXER_STATE_KEY, String(n));
-}
-
-export async function tick() {
-    const head = await client.getBlockNumber();
-    const from = await getLastIndexedBlock(head) + 1n;
-    if (from > head) return;
+async function indexRange({ fromBlock: from, toBlock: head }: BlockRange): Promise<void> {
 
     // RIK Minting events
     const repoCreatedLogs = await logsFetcher.getLogs({
@@ -192,9 +184,6 @@ export async function tick() {
     });
     const insertedTrades = swapTx(swaps);
     for (const tradePayload of insertedTrades) emitLiveTrade(tradePayload);
-   
-
-    setLastIndexedBlock(head);
 }
 
 // helpers
@@ -322,6 +311,6 @@ async function cacheBlockTimestamp(blockNumber: bigint): Promise<void> {
 // start the indexer
 if (SHOULD_RUN_INDEXER) {
     console.log("Starting indexer");
-    setInterval(() => { tick().catch(console.error); }, POLL_MS);
-    tick();
+    setInterval(() => { indexer.tick().catch(console.error); }, POLL_MS);
+    indexer.tick();
 }
