@@ -1,4 +1,5 @@
 import fastify from "fastify";
+import { EventEmitter } from "node:events";
 import { exit } from "node:process";
 import cors from "@fastify/cors";
 import { createPublicClient, http, isAddress, parseAbiItem, erc20Abi } from "viem";
@@ -10,7 +11,6 @@ import { randomBytes } from 'node:crypto'
 import { fetchOwnerUsername, fetchRepoMetaData, getGhClient, RepoMetaData } from "./shared/github";
 import { getMeta, insertRepo, listRepos, upsertMeta, db, type GithubMetaRow, type MarketRow, type RepoRow } from "./db/db";
 import { FastifySSEPlugin } from "fastify-sse-v2";
-import { registryEvents } from "./events";
 import { EventsSocket, type EventMessage } from "./shared/events-socket";
 import rateLimit from "@fastify/rate-limit";
 import { registerCandles } from "./candles";
@@ -64,6 +64,8 @@ const MarketLaunchedEvent = parseAbiItem("event MarketLaunched(uint256 indexed r
 const SwapEvent = parseAbiItem("event Swap(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick, uint24 fee)");
 
 const app = fastify({ logger: true });
+const repoStreamEvents = new EventEmitter();
+const marketDataEvents = new EventEmitter();
 
 try { registerOrigins(ALLOWED_ORIGINS); } catch (err) { die(err); }
 
@@ -419,7 +421,7 @@ app.get("/api/repos/stream", async (req, reply) => {
         }
     }
     const listener = (row: RepoStreamPayload) => reply.sse({ id: String(row.blockNumber), data: JSON.stringify(row) });
-    registryEvents.on("repo", listener); req.raw.on("close", () => registryEvents.off("repo", listener));
+    repoStreamEvents.on("repo", listener); req.raw.on("close", () => repoStreamEvents.off("repo", listener));
 });
 
 // token gate-check every request
@@ -435,7 +437,7 @@ app.addHook("preHandler", async (req, _) => {
 
 await app.register(registerCandles);
 await app.register(registerDepth);
-await registerWs(app, registryEvents, async (req) => {
+await registerWs(app, marketDataEvents, async (req) => {
     const address = req.session.get("address");
     return address ? await checkGate(address) : false;
 });
@@ -466,7 +468,7 @@ function readPort(value: string | undefined, fallback: number, name: string): nu
 
 function handleEventsSocketMessage(message: EventMessage): void {
     if (message.topic === "repo") {
-        registryEvents.emit("repo", message.payload);
+        repoStreamEvents.emit("repo", message.payload);
         return;
     }
 
@@ -476,7 +478,7 @@ function handleEventsSocketMessage(message: EventMessage): void {
             return;
         }
 
-        registryEvents.emit("event", message.payload.key, message.payload.payload);
+        marketDataEvents.emit("event", message.payload.key, message.payload.payload);
         return;
     }
 
