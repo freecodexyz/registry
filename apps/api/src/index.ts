@@ -7,7 +7,7 @@ import { httpErrors } from "@fastify/sensible";
 import { generateNonce, SiweMessage } from "siwe";
 import secureSession from "@fastify/secure-session";
 import { randomBytes } from 'node:crypto'
-import { fetchOwnerUsername, fetchRepoMetaData, getGhClient, RepoMetaData } from "./github";
+import { fetchOwnerUsername, fetchRepoMetaData, getGhClient, RepoMetaData } from "./shared/github";
 import { getMeta, insertRepo, listRepos, upsertMeta, db, type GithubMetaRow, type MarketRow, type RepoRow } from "./db/db";
 import { FastifySSEPlugin } from "fastify-sse-v2";
 import { registryEvents } from "./events";

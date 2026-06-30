@@ -1,7 +1,7 @@
 import type { Octokit } from "@octokit/rest";
 import type { Address, Hash } from "viem";
 import { db, insertRepo, upsertMeta } from "../db/db";
-import { fetchOwnerUsername, fetchRepoMetaData } from "../github";
+import { fetchOwnerUsername, fetchRepoMetaData } from "../shared/github";
 import type { RepoRegisteredEvent } from "../index";
 import type { EventMessage } from "../shared/events-socket";
 import type { BlockRange, IndexerStep } from "./engine";

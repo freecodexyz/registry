@@ -1,6 +1,6 @@
 import { db } from "./db/db";
 import { client, RIK_ADDRESS, RepoRegisteredEvent, MarketLaunchedEvent, SwapEvent, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID, LAUNCHER_ADDRESS, V4_POOL_MANAGER } from "./index";
-import { getGhClient } from "./github";
+import { getGhClient } from "./shared/github";
 import { EventsSocket, type EventMessage } from "./shared/events-socket";
 import { BlockCheckpointStore } from "./indexer/checkpoint";
 import { IndexerEngine } from "./indexer/engine";
