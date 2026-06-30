@@ -9,7 +9,7 @@ import { generateNonce, SiweMessage } from "siwe";
 import secureSession from "@fastify/secure-session";
 import { randomBytes } from 'node:crypto'
 import { fetchOwnerUsername, fetchRepoMetaData, getGhClient, RepoMetaData } from "./shared/github";
-import { getMeta, insertRepo, listRepos, upsertMeta, db, type GithubMetaRow, type MarketRow, type RepoRow } from "./db/db";
+import { getMeta, upsertMeta, db, type GithubMetaRow, type MarketRow, type RepoRow } from "./db/db";
 import { FastifySSEPlugin } from "fastify-sse-v2";
 import { EventsSocket, type EventMessage } from "./shared/events-socket";
 import rateLimit from "@fastify/rate-limit";
@@ -31,7 +31,6 @@ const GATE_TOKEN_ADDRESS            = process.env.GATE_TOKEN_ADDRESS as `0x${str
 const GATE_TOKEN_MIN_BALANCE        = process.env.GATE_TOKEN_MIN_BALANCE ?? 1;
 const GITHUB_TOKEN                  = process.env.GITHUB_TOKEN;
 const REPO_CACHE_TTL_MS             = 5 * 60_000; // 5 min
-const EVENT_CACHE_TTL_MS            = 10_000;
 const DEFAULT_PAGE_SIZE             = 50;
 const MAX_PAGE_SIZE                 = 200;
 const SHOULD_RUN_INDEXER            = process.env.INDEXER === "1" || process.env.INDEXER?.toLowerCase() === "true";
@@ -78,8 +77,7 @@ if (!SHOULD_RUN_INDEXER) {
     }).attach(handleEventsSocketMessage);
 }
 
-// Process-local L1 cache only. SQLite remains the durable layer so restarts do not
-// immediately fan out to the RPC node and GitHub API again.
+// Process-local GitHub metadata cache only. SQLite remains the durable layer.
 type Cache<T> = { value: T, at: number };
 type RepoGithubCache = { metadata: RepoMetaData | null; ownerUsername: string | null };
 type RepoPayload = {
@@ -116,7 +114,6 @@ type MarketPayload = {
 type Sort = "registered_at_desc" | "stars_desc" | "registered_at_asc";
 
 const repoCache = new Map<string, Cache<RepoGithubCache>>();
-let eventCache: Cache<readonly any[]> | null = null;
 
 const ORDER: Record<Sort, string> = {
     registered_at_asc:  "r.registered_at ASC, r.repo_id ASC",
@@ -162,32 +159,6 @@ app.get("/api/repos", async (req, reply) => {
     const cursorRaw = Number(raw.cursor ?? 0);
     const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), MAX_PAGE_SIZE) : DEFAULT_PAGE_SIZE;
     const offset = Number.isFinite(cursorRaw) ? Math.min(Math.max(Math.trunc(cursorRaw), 0), Number.MAX_SAFE_INTEGER) : 0;
-
-    try {
-        const now = Date.now();
-        let logs: readonly any[];
-
-        // RepoRegistered events are append-only for our purposes, so a short event
-        // TTL collapses repeated page loads without hiding fresh data for long.
-        if (eventCache && now - eventCache.at < EVENT_CACHE_TTL_MS) logs = eventCache.value;
-        else {
-            logs = await client.getLogs({ address: RIK_ADDRESS, event: RepoRegisteredEvent, fromBlock: await client.getBlockNumber() - DEFAULT_LIST_BLOCK_RANGE, toBlock: "latest" });
-            eventCache = { value: logs, at: Date.now() };
-        }
-
-        for (const log of logs) {
-            const { repoId, registrant, githubOwnerId, registeredAt } = log.args;
-            if (repoId == null || registrant == null || githubOwnerId == null || registeredAt == null || log.blockNumber == null) continue;
-            // Refreshes replay overlapping block ranges; repo_id is the stable event key,
-            // so INSERT OR IGNORE makes the SQLite index idempotent.
-            insertRepo.run(String(repoId), registrant, Number(githubOwnerId), Number(registeredAt), Number(log.blockNumber), log.transactionHash ?? null, CHAIN_ID);
-        }
-    } catch (err) {
-        // Once SQLite is primed, availability is better than failing the page because
-        // the RPC endpoint had a transient outage. The next successful request repairs it.
-        if ((listRepos.all(CHAIN_ID) as RepoRow[]).length === 0) throw err;
-        app.log.warn({ err }, "failed to refresh repo events; serving sqlite cache");
-    }
 
     const where: string[] = ["r.chain_id = ?"];
     const params: any[] = [CHAIN_ID];
