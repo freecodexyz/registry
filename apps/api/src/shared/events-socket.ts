@@ -170,10 +170,6 @@ export class EventsSocket {
 }
 
 function isEventMessage(value: unknown): value is EventMessage {
-    if (!isRecord(value)) return false;
-    return typeof value.topic === "string" && value.topic.length > 0 && "payload" in value;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === "object" && value !== null;
+    return typeof value === "object" && value !== null &&
+        "topic" in value && typeof value.topic === "string" && value.topic.length > 0 && "payload" in value;
 }
