@@ -7,7 +7,7 @@ import type { EventMessage } from "../shared/events-socket";
 import type { BlockRange, IndexerStep } from "./engine";
 import type { LogsFetcher } from "./fetch-logs";
 
-export type RepoRegistrationLog = {
+type RepoRegistrationLog = {
     args: {
         repoId: bigint;
         registrant: Address;
@@ -57,7 +57,7 @@ export class RepoRegistrationIndexer implements IndexerStep {
         await this.enrich(logs);
     }
 
-    async fetch(range: BlockRange): Promise<RepoRegistrationLog[]> {
+    private async fetch(range: BlockRange): Promise<RepoRegistrationLog[]> {
         const logs = await this.logsFetcher.getLogs({
             address: this.address,
             event: this.event,
@@ -77,7 +77,7 @@ export class RepoRegistrationIndexer implements IndexerStep {
         }));
     }
 
-    insert(logs: readonly RepoRegistrationLog[]): void {
+    private insert(logs: readonly RepoRegistrationLog[]): void {
         const insertTx = db.transaction((rows: readonly RepoRegistrationLog[]) => {
             for (const l of rows) {
                 insertRepo.run(
@@ -91,7 +91,7 @@ export class RepoRegistrationIndexer implements IndexerStep {
         insertTx(logs);
     }
 
-    async enrich(logs: readonly RepoRegistrationLog[]): Promise<void> {
+    private async enrich(logs: readonly RepoRegistrationLog[]): Promise<void> {
         for (const l of logs) {
             const [metadata, ownerUsername] = await Promise.all([
                 fetchRepoMetaData(this.github, Number(l.args.repoId)),
