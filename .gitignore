@@ -3,3 +3,4 @@ dist/
 apps/api/data
 .env
 .DS_store
+NOTES
