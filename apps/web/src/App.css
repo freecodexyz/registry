@@ -243,6 +243,27 @@
   justify-items: center;
 }
 
+.trade-view-switcher {
+  width: min(100%, 460px);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.trade-view-switcher__tabs {
+  width: 100%;
+  justify-content: flex-start;
+  background: var(--bg);
+}
+
+.trade-view-switcher__tab {
+  min-width: 96px;
+  text-align: center;
+}
+
+.trade-view-switcher__panel {
+  min-width: 0;
+}
+
 .token-swap-widget {
   width: min(100%, 460px);
   padding: var(--space-5);
