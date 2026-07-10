@@ -30,6 +30,7 @@ COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/apps/api/node_modules ./node_modules
 COPY --from=build /app/apps/api/package.json ./package.json
 COPY --from=build /app/apps/api/tsconfig.json ./tsconfig.json
+COPY --from=build /app/apps/api/*.assets.json ./
 COPY --from=build /app/apps/api/src ./src
 COPY --from=build /app/apps/api/dist ./dist
 

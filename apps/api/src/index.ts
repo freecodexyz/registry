@@ -17,7 +17,7 @@ import rateLimit from "@fastify/rate-limit";
 import { registerCandles } from "./candles";
 import { registerDepth } from "./depth";
 import { registerWs } from "./ws";
-import { TradableAssetRegistry } from "./swaps/assets";
+import { AssetsLoader } from "./swaps/assets";
 import { SwapHandler } from "./swaps/handler";
 import { registerTradeRoutes } from "./swaps/routes";
 import { UniswapSwapProvider } from "./swaps/uniswap";
@@ -47,6 +47,7 @@ const EVENTS_SOCKET_LISTEN_HOST     = (!process.env.EVENTS_SOCKET_LISTEN_HOST ||
 const EVENTS_SOCKET_PORT            = readPort(process.env.EVENTS_SOCKET_PORT, 3055, "EVENTS_SOCKET_PORT");
 const UNISWAP_API_KEY               = process.env.UNISWAP_API_KEY;
 const UNISWAP_API_URL               = process.env.UNISWAP_API_URL;
+const SWAP_ASSETS_FILE_PATH         = process.env.SWAP_ASSETS_FILE_PATH;
 
 // server can't start with these
 if (!RIK_ADDRESS)           die(new Error("RIK contract address is missing"));
@@ -75,7 +76,10 @@ const SwapEvent = parseAbiItem("event Swap(bytes32 indexed id, address indexed s
 const app = fastify({ logger: true });
 const repoStreamEvents = new EventEmitter();
 const marketDataEvents = new EventEmitter();
-const tradableAssets = new TradableAssetRegistry(db, client, CHAIN_ID);
+const tradableAssets = await AssetsLoader.load({
+    cwd: process.cwd(),
+    envPath: SWAP_ASSETS_FILE_PATH,
+}).catch((err: unknown) => die(err));
 const swapHandler = new SwapHandler(new UniswapSwapProvider(UNISWAP_API_KEY, UNISWAP_API_URL));
 
 try { registerOrigins(ALLOWED_ORIGINS); } catch (err) { die(err); }
@@ -310,7 +314,7 @@ type MarketPayload = {
 
 registerMarketRoutes();
 registerTradeRoutes(app, {
-    chainId: CHAIN_ID,
+    chainId: tradableAssets.chainId,
     handler: swapHandler,
     assets: tradableAssets,
     preHandler: requireApiAccess,

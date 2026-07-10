@@ -1,0 +1,33 @@
+{
+  "chainId": 8453,
+  "assets": [
+    {
+      "address": "0x0000000000000000000000000000000000000000",
+      "symbol": "ETH",
+      "name": "Ether",
+      "decimals": 18,
+      "source": "core"
+    },
+    {
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "name": "Wrapped Ether",
+      "decimals": 18,
+      "source": "core"
+    },
+    {
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "symbol": "USDC",
+      "name": "USD Coin",
+      "decimals": 6,
+      "source": "core"
+    },
+    {
+      "address": "0x67A7CA081Dc79B45fD1FA059Cd3b8dCcA779Aba3",
+      "symbol": "FREECODE",
+      "name": "FreeCode",
+      "decimals": 18,
+      "source": "core"
+    }
+  ]
+}

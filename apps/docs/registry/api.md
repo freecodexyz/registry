@@ -70,6 +70,7 @@ SQLite (better-sqlite3). Tables:
 | --- | --- | --- |
 | `CONTRACT_ADDRESS` | yes | The RIK contract address to index. |
 | `RPC_URL` | no | RPC endpoint. Defaults to `https://base-sepolia-rpc.publicnode.com`. |
+| `STATE_VIEW` | no | Uniswap v4 StateView contract for depth snapshots. Defaults to Base Sepolia `0x571291b572ed32ce6751a2cb2486ebee8defb9b4`. |
 | `CHAIN_ID` | no | SQLite default chain ID. Defaults to `84532`. |
 | `INDEXER` | no | Set to `1` or `true` to run the indexer loop alongside the server. |
 | `GITHUB_TOKEN` | yes | Used for GitHub REST API enrichment. |
@@ -78,6 +79,7 @@ SQLite (better-sqlite3). Tables:
 | `SESSION_COOKIE_SECURE` | no | Set to `false` to allow non-HTTPS cookies (dev). |
 | `GATE_TOKEN_ADDRESS` | yes | ERC-20 used for the access gate. See [Access Gating](/registry/access). |
 | `GATE_TOKEN_MIN_BALANCE` | no | Minimum balance required to pass the gate. Defaults to `1`. |
+| `SWAP_ASSETS_FILE_PATH` | no | Path to a `.assets.json` file used by the swap API. If unset, startup loads the newest `*.assets.json` in the command working directory. |
 
 ## Running locally
 

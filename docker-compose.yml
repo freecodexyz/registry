@@ -19,6 +19,7 @@ services:
       INDEXER:                "false"
       EVENTS_SOCKET_LISTEN_HOST: 0.0.0.0
       EVENTS_SOCKET_PORT:     ${EVENTS_SOCKET_PORT:-3055}
+      SWAP_ASSETS_FILE_PATH:   ${SWAP_ASSETS_FILE_PATH:-}
     volumes:  ["registry-data:/data"]
     expose:   ["${EVENTS_SOCKET_PORT:-3055}"]
     ports:    ["${API_PUBLISHED_PORT:-3000}:3000"]
@@ -42,6 +43,7 @@ services:
       INDEXER:                "true" 
       EVENTS_SOCKET_HOST:     api
       EVENTS_SOCKET_PORT:     ${EVENTS_SOCKET_PORT:-3055}
+      SWAP_ASSETS_FILE_PATH:   ${SWAP_ASSETS_FILE_PATH:-}
     volumes:  ["registry-data:/data"]
     depends_on: [api]
 

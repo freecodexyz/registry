@@ -2,13 +2,13 @@ import type { FastifyInstance, preHandlerHookHandler } from "fastify";
 import { httpErrors } from "@fastify/sensible";
 import { isAddress } from "viem";
 import type { SwapHandler, WalletActionInput } from "./handler";
-import type { TradableAssetRegistry } from "./assets";
+import type { AssetsLoader } from "./assets";
 import type { HexAddress, SwapQuoteRequest, SwapTradeType } from "./types";
 
 type RegisterTradeRoutesOptions = {
     chainId: number;
     handler: SwapHandler;
-    assets: TradableAssetRegistry;
+    assets: Pick<AssetsLoader, "list" | "isTradable">;
     preHandler?: preHandlerHookHandler;
 };
 

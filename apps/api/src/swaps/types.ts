@@ -95,6 +95,7 @@ export type SwapJobError = {
     code: string;
     message: string;
     retriable: boolean;
+    details?: unknown;
 };
 
 export type SwapJobSnapshot = {

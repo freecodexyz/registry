@@ -574,11 +574,13 @@ function approvalOfWork(work: SwapWork): SwapApprovalResult | null {
 function normalizeSwapError(err: unknown): SwapJobError {
     if (err instanceof Error && "code" in err && "retriable" in err) {
         const providerError = err as SwapProviderError;
-        return {
+        const swapError: SwapJobError = {
             code: providerError.code,
             message: providerError.message,
             retriable: providerError.retriable,
         };
+        if (providerError.details !== undefined) swapError.details = providerError.details;
+        return swapError;
     }
 
     return {

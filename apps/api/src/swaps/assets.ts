@@ -1,7 +1,7 @@
-import type Database from "better-sqlite3";
-import { erc20Abi, isAddress } from "viem";
+import { readdir, readFile, stat } from "node:fs/promises";
+import { isAbsolute, resolve } from "node:path";
+import { isAddress } from "viem";
 import type { HexAddress } from "./types";
-import { NATIVE_TOKEN_ADDRESS } from "./types";
 
 export type TradableAsset = {
     chainId: number;
@@ -14,126 +14,170 @@ export type TradableAsset = {
     poolId?: HexAddress;
 };
 
-type MarketAssetRow = {
-    repo_id: string;
-    asset: string;
-    pool_id: string;
-    full_name: string | null;
+type AssetsLoaderOptions = {
+    cwd: string;
+    envPath?: string | undefined;
 };
 
-type AssetMetadata = {
-    symbol: string;
-    name: string;
-    decimals: number;
+type AssetsFilePayload = {
+    chainId?: number;
+    assets: unknown[];
 };
 
-type ContractReader = {
-    readContract(args: { address: HexAddress; abi: typeof erc20Abi; functionName: "symbol" | "name" | "decimals" }): Promise<unknown>;
+type LoadedAssets = {
+    chainId: number;
+    assets: TradableAsset[];
 };
 
-const BASE_SEPOLIA_CORE_ASSETS: Omit<TradableAsset, "chainId">[] = [
-    {
-        address: NATIVE_TOKEN_ADDRESS,
-        symbol: "ETH",
-        name: "Ether",
-        decimals: 18,
-        source: "core",
-    },
-    {
-        address: "0x4200000000000000000000000000000000000006",
-        symbol: "WETH",
-        name: "Wrapped Ether",
-        decimals: 18,
-        source: "core",
-    },
-    {
-        address: "0x036CbD53842c5426634e7929541eC2318f3dCF7",
-        symbol: "USDC",
-        name: "USD Coin",
-        decimals: 6,
-        source: "core",
-    },
-];
+export class AssetsLoader {
+    readonly filePath: string;
+    readonly chainId: number;
+    readonly #assets: readonly TradableAsset[];
+    readonly #tradableAddresses: ReadonlySet<string>;
 
-export class TradableAssetRegistry {
-    private readonly metadataCache = new Map<string, AssetMetadata>();
+    private constructor(filePath: string, loaded: LoadedAssets) {
+        this.filePath = filePath;
+        this.chainId = loaded.chainId;
+        this.#assets = loaded.assets;
+        this.#tradableAddresses = new Set(loaded.assets.map((asset) => asset.address.toLowerCase()));
+    }
 
-    constructor(
-        private readonly db: Database.Database,
-        private readonly client: ContractReader,
-        private readonly chainId: number,
-    ) {}
+    static async load(options: AssetsLoaderOptions): Promise<AssetsLoader> {
+        const filePath = await resolveAssetsFile(options);
+        const payload = parseAssetsFile(await readJson(filePath));
+        return new AssetsLoader(filePath, payload);
+    }
 
     async list(): Promise<TradableAsset[]> {
-        const coreAssets = BASE_SEPOLIA_CORE_ASSETS.map((asset) => ({ ...asset, chainId: this.chainId }));
-        const rows = this.db.prepare(`
-            SELECT mk.repo_id, mk.asset, mk.pool_id, meta.full_name
-            FROM markets mk
-            LEFT JOIN github_meta meta ON meta.repo_id = mk.repo_id
-            WHERE mk.asset IS NOT NULL
-            ORDER BY mk.launched_at DESC, mk.repo_id DESC
-        `).all() as MarketAssetRow[];
-
-        const marketAssets = await Promise.all(rows.map((row) => this.assetFromMarket(row)));
-        const byAddress = new Map<string, TradableAsset>();
-        for (const asset of [...coreAssets, ...marketAssets]) byAddress.set(asset.address.toLowerCase(), asset);
-
-        return [...byAddress.values()];
+        return [...this.#assets];
     }
 
     async isTradable(address: HexAddress): Promise<boolean> {
-        if (address.toLowerCase() === NATIVE_TOKEN_ADDRESS) return true;
-        return (await this.list()).some((asset) => asset.address.toLowerCase() === address.toLowerCase());
-    }
-
-    private async assetFromMarket(row: MarketAssetRow): Promise<TradableAsset> {
-        const address = isAddress(row.asset) ? row.asset as HexAddress : NATIVE_TOKEN_ADDRESS;
-        const metadata = await this.readMetadata(address, row);
-        const asset: TradableAsset = {
-            chainId: this.chainId,
-            address,
-            symbol: metadata.symbol,
-            name: metadata.name,
-            decimals: metadata.decimals,
-            source: "market",
-            repoId: row.repo_id,
-        };
-        if (isAddress(row.pool_id)) asset.poolId = row.pool_id as HexAddress;
-        return asset;
-    }
-
-    private async readMetadata(address: HexAddress, row: MarketAssetRow): Promise<AssetMetadata> {
-        const key = address.toLowerCase();
-        const cached = this.metadataCache.get(key);
-        if (cached) return cached;
-
-        const fallbackSymbol = symbolFromMarket(row);
-        const fallbackName = row.full_name ?? `RIK ${row.repo_id}`;
-        let symbol = fallbackSymbol;
-        let name = fallbackName;
-        let decimals = 18;
-
-        if (address !== NATIVE_TOKEN_ADDRESS) {
-            const [symbolResult, nameResult, decimalsResult] = await Promise.allSettled([
-                this.client.readContract({ address, abi: erc20Abi, functionName: "symbol" }),
-                this.client.readContract({ address, abi: erc20Abi, functionName: "name" }),
-                this.client.readContract({ address, abi: erc20Abi, functionName: "decimals" }),
-            ]);
-
-            if (symbolResult.status === "fulfilled" && typeof symbolResult.value === "string" && symbolResult.value) symbol = symbolResult.value;
-            if (nameResult.status === "fulfilled" && typeof nameResult.value === "string" && nameResult.value) name = nameResult.value;
-            if (decimalsResult.status === "fulfilled" && typeof decimalsResult.value === "number") decimals = decimalsResult.value;
-        }
-
-        const metadata = { symbol, name, decimals };
-        this.metadataCache.set(key, metadata);
-        return metadata;
+        return this.#tradableAddresses.has(address.toLowerCase());
     }
 }
 
-function symbolFromMarket(row: Pick<MarketAssetRow, "full_name" | "repo_id">): string {
-    const fullName = row.full_name?.trim();
-    if (!fullName) return `RIK-${row.repo_id}`;
+async function resolveAssetsFile(options: AssetsLoaderOptions): Promise<string> {
+    const configuredPath = options.envPath?.trim();
+    if (configuredPath) return isAbsolute(configuredPath) ? configuredPath : resolve(options.cwd, configuredPath);
 
-    return fullName.split("/").at(-1)?.slice(0, 16).toUpperCase() || `RIK-${row.repo_id}`;
+    const entries = await readdir(options.cwd, { withFileTypes: true });
+    const candidates = await Promise.all(entries
+        .filter((entry) => entry.isFile() && entry.name.endsWith(".assets.json"))
+        .map(async (entry) => {
+            const filePath = resolve(options.cwd, entry.name);
+            return { filePath, modifiedAt: (await stat(filePath)).mtimeMs };
+        }));
+
+    candidates.sort((a, b) => b.modifiedAt - a.modifiedAt || a.filePath.localeCompare(b.filePath));
+    const file = candidates[0]?.filePath;
+    if (!file) throw new Error(`no *.assets.json file found in ${options.cwd}; set SWAP_ASSETS_FILE_PATH to configure one`);
+    return file;
+}
+
+async function readJson(filePath: string): Promise<unknown> {
+    let text: string;
+    try {
+        text = await readFile(filePath, "utf8");
+    } catch (err) {
+        throw new Error(`unable to read swap assets file ${filePath}: ${errorMessage(err)}`);
+    }
+
+    try {
+        return JSON.parse(text) as unknown;
+    } catch (err) {
+        throw new Error(`unable to parse swap assets file ${filePath}: ${errorMessage(err)}`);
+    }
+}
+
+function parseAssetsFile(value: unknown): LoadedAssets {
+    const payload = readPayload(value);
+    const assets = payload.assets.map((asset, index) => parseAsset(asset, payload.chainId, index));
+    if (assets.length === 0) throw new Error("swap assets file must contain at least one asset");
+    ensureUniqueAssets(assets);
+    const chainId = readAssetsChainId(payload.chainId, assets);
+    return { chainId, assets };
+}
+
+function readPayload(value: unknown): AssetsFilePayload {
+    if (Array.isArray(value)) return { assets: value };
+    const record = readRecord(value, "swap assets file");
+    if (!Array.isArray(record.assets)) throw new Error("swap assets file must contain an assets array");
+
+    const payload: AssetsFilePayload = { assets: record.assets };
+    if (record.chainId !== undefined) payload.chainId = readChainId(record.chainId, "chainId");
+    return payload;
+}
+
+function parseAsset(value: unknown, fileChainId: number | undefined, index: number): TradableAsset {
+    const record = readRecord(value, `asset[${index}]`);
+    const chainId = record.chainId === undefined ? fileChainId : readChainId(record.chainId, `asset[${index}].chainId`);
+    if (chainId === undefined) throw new Error(`asset[${index}].chainId is required when file chainId is not set`);
+    if (fileChainId !== undefined && chainId !== fileChainId) throw new Error(`asset[${index}].chainId must be ${fileChainId}`);
+
+    const asset: TradableAsset = {
+        chainId,
+        address: readAddress(record.address, `asset[${index}].address`),
+        symbol: readNonEmptyString(record.symbol, `asset[${index}].symbol`),
+        name: readNonEmptyString(record.name, `asset[${index}].name`),
+        decimals: readDecimals(record.decimals, `asset[${index}].decimals`),
+        source: readSource(record.source, `asset[${index}].source`),
+    };
+
+    if (record.repoId !== undefined) asset.repoId = readNonEmptyString(record.repoId, `asset[${index}].repoId`);
+    if (record.poolId !== undefined) asset.poolId = readAddress(record.poolId, `asset[${index}].poolId`);
+    return asset;
+}
+
+function readAssetsChainId(fileChainId: number | undefined, assets: readonly TradableAsset[]): number {
+    if (fileChainId !== undefined) return fileChainId;
+
+    const chainIds = new Set(assets.map((asset) => asset.chainId));
+    if (chainIds.size !== 1) throw new Error("swap assets file must contain assets for one chain");
+    const chainId = assets[0]?.chainId;
+    if (chainId === undefined) throw new Error("swap assets file must contain at least one asset");
+    return chainId;
+}
+
+function ensureUniqueAssets(assets: readonly TradableAsset[]): void {
+    const seen = new Set<string>();
+    for (const asset of assets) {
+        const key = asset.address.toLowerCase();
+        if (seen.has(key)) throw new Error(`duplicate asset address ${asset.address}`);
+        seen.add(key);
+    }
+}
+
+function readRecord(value: unknown, name: string): Record<string, unknown> {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error(`${name} must be an object`);
+    return value as Record<string, unknown>;
+}
+
+function readAddress(value: unknown, name: string): HexAddress {
+    if (typeof value !== "string" || !isAddress(value)) throw new Error(`${name} must be a valid address`);
+    return value as HexAddress;
+}
+
+function readNonEmptyString(value: unknown, name: string): string {
+    if (typeof value !== "string" || value.trim() === "") throw new Error(`${name} must be a non-empty string`);
+    return value;
+}
+
+function readChainId(value: unknown, name: string): number {
+    if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) throw new Error(`${name} must be a positive integer`);
+    return value;
+}
+
+function readDecimals(value: unknown, name: string): number {
+    if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > 255) throw new Error(`${name} must be an integer between 0 and 255`);
+    return value;
+}
+
+function readSource(value: unknown, name: string): TradableAsset["source"] {
+    if (value === "core" || value === "market") return value;
+    throw new Error(`${name} must be core or market`);
+}
+
+function errorMessage(err: unknown): string {
+    return err instanceof Error ? err.message : String(err);
 }
