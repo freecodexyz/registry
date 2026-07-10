@@ -16,7 +16,7 @@ import { formatBaseUnitAmount, networkName, shortHash } from './tradeUtils'
 export function SwapDirectionButton({ onSwap, disabled }: { onSwap: () => void; disabled: boolean }) {
   return (
     <Button className="token-swap-widget__direction" type="button" variant="ghost" icon aria-label="Swap direction" onClick={onSwap} disabled={disabled}>
-      <FiArrowDown aria-hidden="true" focusable="false" />
+      <FiArrowDown className="token-swap-widget__direction-icon" aria-hidden="true" focusable="false" />
     </Button>
   )
 }

@@ -364,6 +364,16 @@
   stroke-width: 2;
 }
 
+.token-swap-widget__direction-icon {
+  transition: transform 160ms ease;
+  transform-origin: center;
+}
+
+.token-swap-widget__direction:hover:not(:disabled) .token-swap-widget__direction-icon,
+.token-swap-widget__direction:focus-visible:not(:disabled) .token-swap-widget__direction-icon {
+  transform: rotate(180deg);
+}
+
 .token-swap-widget__status {
   margin-top: var(--space-2);
 }
