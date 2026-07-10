@@ -227,6 +227,7 @@
   padding: var(--space-10) var(--space-8) var(--space-16);
 }
 
+.trade,
 .marketplace,
 .route-loading,
 .route-error {
@@ -236,6 +237,181 @@
   display: grid;
   align-content: start;
   padding: var(--space-16) var(--space-8);
+}
+
+.trade {
+  justify-items: center;
+}
+
+.token-swap-widget {
+  width: min(100%, 460px);
+  padding: var(--space-5);
+}
+
+.token-swap-widget__form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.token-amount-input {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--bw) solid var(--rule);
+  background: var(--bg);
+}
+
+.token-amount-input:focus-within {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.token-amount-input__top,
+.token-amount-input__bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--fg-dim);
+  font-size: 11px;
+  line-height: var(--lh-snug);
+}
+
+.token-amount-input__top label {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-mono);
+  text-transform: uppercase;
+}
+
+.token-amount-input__top span,
+.token-amount-input__bottom span {
+  min-width: 0;
+}
+
+.token-amount-input__bottom span:first-child {
+  color: var(--fg);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.token-amount-input__bottom span:last-child {
+  white-space: nowrap;
+}
+
+.token-amount-input__control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.token-amount-input__amount {
+  width: 100%;
+  min-width: 0;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 30px;
+  font-weight: var(--w-medium);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.token-amount-input__amount::placeholder {
+  color: var(--fg-dim);
+}
+
+.token-amount-input__amount:focus {
+  outline: none;
+}
+
+.token-amount-input__amount:read-only {
+  color: var(--fg-dim);
+}
+
+.token-amount-input__token {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.token-amount-input__token .fcf-select {
+  min-height: 38px;
+  font-family: var(--mono);
+  font-size: var(--t-mono);
+  letter-spacing: 0;
+}
+
+.token-swap-widget__direction {
+  justify-self: stretch;
+  width: 100%;
+  height: 36px;
+  margin-block: calc(var(--space-2) * -1);
+  z-index: 1;
+  background: var(--bg);
+}
+
+.token-swap-widget__direction svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+.token-swap-widget__status {
+  margin-top: var(--space-2);
+}
+
+.token-swap-widget__status .fcf-spec-row {
+  padding: 9px 0;
+}
+
+.token-swap-widget__status .k {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: var(--ls-normal);
+  text-transform: none;
+}
+
+.token-swap-widget__status .v {
+  font-size: 11px;
+}
+
+.token-swap-widget__route {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.token-swap-widget__route--ready {
+  color: var(--accent-deep);
+}
+
+.token-swap-widget__route--blocked {
+  color: var(--danger);
+}
+
+.token-swap-widget__number {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.token-swap-widget__action {
+  min-height: 42px;
+  margin-top: var(--space-2);
+}
+
+[data-theme='dark'] .token-swap-widget__action {
+  --_bg: var(--fg);
+  --_fg: var(--bg);
+  --_bd: var(--fg);
 }
 
 #root:has(.marketplace) {
@@ -1800,6 +1976,23 @@
   .route-error {
     min-height: calc(100svh - 65px);
     padding: var(--space-8) var(--space-4);
+  }
+
+  .trade {
+    min-height: calc(100svh - 65px);
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .token-swap-widget {
+    padding: var(--space-4);
+  }
+
+  .token-amount-input__control {
+    grid-template-columns: minmax(0, 1fr) 124px;
+  }
+
+  .token-amount-input__amount {
+    font-size: 25px;
   }
 
   .marketplace {

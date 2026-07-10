@@ -38,14 +38,7 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
 }
 
-export function useMarketToken({ tokenAddress, chainId }: MarketToken): MarketTokenState {
-  const totalSupplyQuery = useReadContract({
-    address: tokenAddress,
-    abi: erc20Abi,
-    functionName: 'totalSupply',
-    chainId,
-    query: { refetchInterval: TOKEN_REFETCH_INTERVAL_MS },
-  })
+export function useMarketTokenDecimals({ tokenAddress, chainId }: MarketToken): TokenDecimalsState {
   const decimalsQuery = useReadContract({
     address: tokenAddress,
     abi: erc20Abi,
@@ -55,16 +48,30 @@ export function useMarketToken({ tokenAddress, chainId }: MarketToken): MarketTo
   })
 
   const decimals = parseTokenDecimals(decimalsQuery.data)
+
+  return decimalsQuery.status === 'error'
+    ? { status: 'error', message: errorMessage(decimalsQuery.error, 'Unable to load token decimals') }
+    : decimalsQuery.status === 'success'
+      ? decimals == null
+        ? { status: 'error', message: 'Token decimals response is invalid' }
+        : { status: 'ready', decimals }
+      : { status: 'loading' }
+}
+
+export function useMarketToken({ tokenAddress, chainId }: MarketToken): MarketTokenState {
+  const decimals = useMarketTokenDecimals({ tokenAddress, chainId })
+  const totalSupplyQuery = useReadContract({
+    address: tokenAddress,
+    abi: erc20Abi,
+    functionName: 'totalSupply',
+    chainId,
+    query: { refetchInterval: TOKEN_REFETCH_INTERVAL_MS },
+  })
+
   const totalSupply = parseTokenSupply(totalSupplyQuery.data)
 
   return {
-    decimals: decimalsQuery.status === 'error'
-      ? { status: 'error', message: errorMessage(decimalsQuery.error, 'Unable to load token decimals') }
-      : decimalsQuery.status === 'success'
-        ? decimals == null
-          ? { status: 'error', message: 'Token decimals response is invalid' }
-          : { status: 'ready', decimals }
-        : { status: 'loading' },
+    decimals,
     supply: totalSupplyQuery.status === 'error'
       ? { status: 'error', message: errorMessage(totalSupplyQuery.error, 'Unable to load token supply') }
       : totalSupplyQuery.status === 'success'

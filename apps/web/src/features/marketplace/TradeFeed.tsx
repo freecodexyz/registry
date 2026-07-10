@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, Notice } from '@freecodexyz/ui'
 import { AutoSizer } from 'react-virtualized-auto-sizer'
+import { FiExternalLink } from 'react-icons/fi'
 import { List } from 'react-window'
 import type { RowComponentProps } from 'react-window'
 import { explorerTxUrl } from '../../shared/explorers'
@@ -215,10 +216,7 @@ function TradeFeedRow({ index, style, ariaAttributes, trades, chainId, baseToken
           <span className="trade-feed__number">{time.seconds}</span>
         </time>
         <a className="trade-feed__tx-link" href={explorerTxUrl(chainId, trade.txHash)} target="_blank" rel="noreferrer" aria-label={`Open ${sideLabel} transaction on Base Sepolia explorer`}>
-          <svg viewBox="0 0 20 20" aria-hidden="true">
-            <path d="M6 4v1.5h6.44L4.97 12.97l1.06 1.06 7.47-7.47V13H15V4H6Z" />
-            <path d="M4.5 5.5H8V7H6v7h7v-2h1.5v3.5h-10v-10Z" />
-          </svg>
+          <FiExternalLink aria-hidden="true" focusable="false" />
         </a>
       </span>
     </div>

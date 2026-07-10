@@ -62,6 +62,7 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
                 {showPageLinks && (
                   <div className="top-navbar__page-links top-navbar__page-links--mobile" aria-label="Available pages">
                     <NavLink className="top-navbar__page-link" to="/registry" role="menuitem" onClick={() => setIsMenuOpen(false)}>Registry</NavLink>
+                    <NavLink className="top-navbar__page-link" to="/trade" role="menuitem" onClick={() => setIsMenuOpen(false)}>Trade</NavLink>
                     {MARKETPLACE_NAV_ENABLED && <NavLink className="top-navbar__page-link" to="/marketplace" role="menuitem" onClick={() => setIsMenuOpen(false)}>Marketplace</NavLink>}
                   </div>
                 )}
@@ -79,6 +80,7 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
         {showPageLinks && !isMobile && (
           <div className="top-navbar__page-links" aria-label="Available pages">
             <NavLink className="top-navbar__page-link" to="/registry">Registry</NavLink>
+            <NavLink className="top-navbar__page-link" to="/trade">Trade</NavLink>
             {MARKETPLACE_NAV_ENABLED && <NavLink className="top-navbar__page-link" to="/marketplace">Marketplace</NavLink>}
           </div>
         )}

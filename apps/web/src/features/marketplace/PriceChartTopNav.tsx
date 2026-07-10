@@ -1,6 +1,8 @@
 import type { Address } from 'viem'
+import { FiExternalLink } from 'react-icons/fi'
 import { chainLabel, explorerAddressUrl } from '../../shared/explorers'
 import type { EthUsdPriceState } from './marketPrice'
+import { MarketSelector, type MarketSelectorMarket } from './MarketSelector'
 import {
   MARKET_DAY_LOOKBACK_SECONDS,
   stateFromUsdConversion,
@@ -37,17 +39,17 @@ type PriceChartTopNavState = {
   };
 }
 
-export type PriceChartTopNavMarket = {
-  repoId: string;
-  baseTokenSymbol: string;
-  tokenAddress: Address;
-  chainId: number;
-}
+export type PriceChartTopNavMarket = MarketSelectorMarket
 
 type PriceChartTopNavProps = {
   market: PriceChartTopNavMarket;
+  markets: readonly PriceChartTopNavMarket[];
+  quoteTokenSymbol: string;
   ethUsdPriceState: EthUsdPriceState;
+  onMarketSelect: (repoId: string) => void;
 }
+
+type PriceChartTopNavStateParams = Pick<PriceChartTopNavProps, 'market' | 'ethUsdPriceState'>
 
 function loadingMetric(): MetricValueState {
   return { status: 'loading' }
@@ -177,19 +179,19 @@ function PriceChartTopNavContract({ address, chainId }: { address: Address; chai
       <span className="price-chart-nav__contract-value">
         <span className="price-chart-nav__contract-address" title={address}>{truncateAddress(address)}</span>
         <a className="price-chart-nav__external" href={explorerAddressUrl(chainId, address)} target="_blank" rel="noreferrer" aria-label={`Open token contract on ${explorerLabel} explorer`}>
-          <svg viewBox="0 0 20 20" aria-hidden="true">
-            <path d="M6 4v1.5h6.44L4.97 12.97l1.06 1.06 7.47-7.47V13H15V4H6Z" />
-            <path d="M4.5 5.5H8V7H6v7h7v-2h1.5v3.5h-10v-10Z" />
-          </svg>
+          <FiExternalLink aria-hidden="true" focusable="false" />
         </a>
       </span>
     </div>
   )
 }
 
-function PriceChartTopNavView({ state, baseTokenSymbol }: { state: PriceChartTopNavState; baseTokenSymbol: string }) {
+function PriceChartTopNavView({ state, market, markets, quoteTokenSymbol, ethUsdPriceState, onMarketSelect }: { state: PriceChartTopNavState; market: PriceChartTopNavMarket; markets: readonly PriceChartTopNavMarket[]; quoteTokenSymbol: string; ethUsdPriceState: EthUsdPriceState; onMarketSelect: (repoId: string) => void }) {
   return (
-    <section className="price-chart-nav" aria-label={`${baseTokenSymbol} market summary`} aria-live="polite">
+    <section className="price-chart-nav" aria-label={`${market.baseTokenSymbol} market summary`} aria-live="polite">
+      <div className="price-chart-nav__item price-chart-nav__item--selector">
+        <MarketSelector market={market} markets={markets} quoteTokenSymbol={quoteTokenSymbol} ethUsdPriceState={ethUsdPriceState} onMarketSelect={onMarketSelect} />
+      </div>
       <PriceChartTopNavMetric label="Price" state={state.price} />
       <PriceChartTopNavMetric label="24h Change" state={state.change} />
       <PriceChartTopNavMetric label="24h Volume" state={state.volume} />
@@ -199,7 +201,7 @@ function PriceChartTopNavView({ state, baseTokenSymbol }: { state: PriceChartTop
   )
 }
 
-function usePriceChartTopNavState({ market, ethUsdPriceState }: PriceChartTopNavProps): PriceChartTopNavState {
+function usePriceChartTopNavState({ market, ethUsdPriceState }: PriceChartTopNavStateParams): PriceChartTopNavState {
   const { state: candleState } = useMarketCandles({
     repoId: market.repoId,
     interval: '1m',
@@ -256,8 +258,8 @@ function usePriceChartTopNavState({ market, ethUsdPriceState }: PriceChartTopNav
   }
 }
 
-export function PriceChartTopNav({ market, ethUsdPriceState }: PriceChartTopNavProps) {
+export function PriceChartTopNav({ market, markets, quoteTokenSymbol, ethUsdPriceState, onMarketSelect }: PriceChartTopNavProps) {
   const state = usePriceChartTopNavState({ market, ethUsdPriceState })
 
-  return <PriceChartTopNavView state={state} baseTokenSymbol={market.baseTokenSymbol} />
+  return <PriceChartTopNavView state={state} market={market} markets={markets} quoteTokenSymbol={quoteTokenSymbol} ethUsdPriceState={ethUsdPriceState} onMarketSelect={onMarketSelect} />
 }

@@ -1,5 +1,5 @@
 import { createConfig, http } from "wagmi";
-import { baseSepolia } from "wagmi/chains";
+import { base, baseSepolia } from "wagmi/chains";
 import { injected, walletConnect } from "wagmi/connectors";
 
 const walletConnectProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID?.trim();
@@ -21,7 +21,10 @@ const connectors = [
 ];
 
 export const wagmiConfig = createConfig({
-    chains: [baseSepolia],
+    chains: [base, baseSepolia],
     connectors,
-    transports: { [baseSepolia.id]: http("https://base-sepolia-rpc.publicnode.com") },
+    transports: {
+        [base.id]: http(),
+        [baseSepolia.id]: http("https://base-sepolia-rpc.publicnode.com"),
+    },
 });

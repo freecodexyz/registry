@@ -8,6 +8,7 @@ import { ErrorBoundary } from './ErrorBoundary'
 import '../App.css'
 
 const Registry = lazy(() => import('../features/registry/Registry').then(({ Registry }) => ({ default: Registry })))
+const Trade = lazy(() => import('../features/trade/Trade').then(({ Trade }) => ({ default: Trade })))
 const Marketplace = lazy(() => import('../features/marketplace/Marketplace').then(({ Marketplace }) => ({ default: Marketplace })))
 const MARKETPLACE_ROUTE_ENABLED = false
 
@@ -42,6 +43,18 @@ function App() {
               <ProtectedRoute accessState={accessState}>
                 <Suspense fallback={<RouteLoading label="Loading registry..." />}>
                   <Registry />
+                </Suspense>
+              </ProtectedRoute>
+            </ErrorBoundary>
+          )}
+        />
+        <Route
+          path="/trade"
+          element={(
+            <ErrorBoundary label="Trade route" resetKey={`trade:${accessState}`}>
+              <ProtectedRoute accessState={accessState}>
+                <Suspense fallback={<RouteLoading label="Loading trade..." />}>
+                  <Trade />
                 </Suspense>
               </ProtectedRoute>
             </ErrorBoundary>

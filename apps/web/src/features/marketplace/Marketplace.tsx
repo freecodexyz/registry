@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Notice } from '@freecodexyz/ui'
 import { Allotment } from 'allotment'
 import 'allotment/dist/style.css'
+import { useSearchParams } from 'react-router'
 import { isAddress, type Address } from 'viem'
 import { baseSepolia } from 'wagmi/chains'
 import { OrderEntry } from './OrderEntry'
@@ -10,6 +11,7 @@ import { TradeFeed } from './TradeFeed'
 import { PriceChart } from './PriceChart'
 import { PriceChartTopNav } from './PriceChartTopNav'
 import { useEthUsdPrice } from './marketPrice'
+import { MARKET_LIVE_REFETCH_INTERVAL_MS } from './ws'
 
 type MarketSummary = {
   repoId: string;
@@ -63,8 +65,8 @@ async function loadMarkets(signal: AbortSignal): Promise<MarketSummary[]> {
   return parseMarketsResponse(await response.json() as unknown)
 }
 
-function stateFromMarkets(markets: MarketSummary[] | undefined, status: 'error' | 'pending' | 'success', error: Error | null): MarketSelectionState {
-  const activeMarket = markets?.[0]
+function stateFromMarkets(markets: MarketSummary[] | undefined, selectedRepoId: string | null, status: 'error' | 'pending' | 'success', error: Error | null): MarketSelectionState {
+  const activeMarket = selectedRepoId && markets ? markets.find((market) => market.repoId === selectedRepoId) ?? markets[0] : markets?.[0]
   if (activeMarket) return { status: 'ready', market: activeMarket }
   if (status === 'pending') return { status: 'loading' }
   if (status === 'error') return { status: 'error', message: error?.message ?? 'Unable to load markets' }
@@ -81,16 +83,31 @@ function MarketPaneNotice({ state }: { state: MarketSelectionState }) {
 }
 
 export function Marketplace() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const selectedRepoId = searchParams.get('market')
   const marketsQuery = useQuery({
     queryKey: ['markets'],
     queryFn: ({ signal }) => loadMarkets(signal),
+    refetchInterval: MARKET_LIVE_REFETCH_INTERVAL_MS,
   })
-  const marketState = stateFromMarkets(marketsQuery.data, marketsQuery.status, marketsQuery.error)
+  const marketState = stateFromMarkets(marketsQuery.data, selectedRepoId, marketsQuery.status, marketsQuery.error)
   const activeMarket = marketState.status === 'ready' ? marketState.market : null
   const ethUsdPriceState = useEthUsdPrice(activeMarket != null)
   const orderMarket = {
     ...demoMarket,
     baseTokenSymbol: activeMarket?.symbol ?? demoMarket.baseTokenSymbol,
+  }
+  const indexedMarkets = (marketsQuery.data ?? []).map((market) => ({
+    repoId: market.repoId,
+    baseTokenSymbol: market.symbol,
+    tokenAddress: market.asset,
+    chainId: baseSepolia.id,
+  }))
+
+  function selectMarket(repoId: string) {
+    const next = new URLSearchParams(searchParams)
+    next.set('market', repoId)
+    setSearchParams(next)
   }
 
   return (
@@ -107,7 +124,10 @@ export function Marketplace() {
                     tokenAddress: activeMarket.asset,
                     chainId: baseSepolia.id,
                   }}
+                  markets={indexedMarkets}
+                  quoteTokenSymbol={demoMarket.quoteTokenSymbol}
                   ethUsdPriceState={ethUsdPriceState}
+                  onMarketSelect={selectMarket}
                 />
                 <PriceChart
                   market={{
