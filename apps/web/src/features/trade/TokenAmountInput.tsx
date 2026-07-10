@@ -1,6 +1,7 @@
 import { useId, useState, type ChangeEvent } from 'react'
 import type { Address } from 'viem'
 import type { TradableAsset } from './tradeApi'
+import { TokenIcon } from './TokenIcon'
 import { sanitizeDecimalInput } from './tradeUtils'
 import { TokenSelectorDialog } from './TokenSelectorDialog'
 import type { TokenBalanceMap } from './useTokenBalance'
@@ -65,6 +66,7 @@ export function TokenAmountInput({
           onClick={() => setIsSelectorOpen(true)}
           aria-haspopup="dialog"
         >
+          <TokenIcon asset={token} className="token-amount-input__token-icon" loading="eager" />
           <span>{token?.symbol ?? 'Select'}</span>
         </button>
       </div>

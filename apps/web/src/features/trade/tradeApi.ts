@@ -7,6 +7,12 @@ export type TradableAsset = {
   name: string;
   decimals: number;
   source: 'core' | 'market';
+  imageUrl?: string;
+  homepageUrl?: string;
+  isSpam?: boolean;
+  safetyLevel?: string | null;
+  isConfigured: boolean;
+  volume24HUsd?: number;
   repoId?: string;
   poolId?: Address;
 }
@@ -145,7 +151,7 @@ function parseAssetsResponse(value: unknown): TradableAssetsResponse {
   const assets = record.assets.filter(isTradableAsset)
   if (assets.length === 0 && record.assets.length > 0) throw new Error('invalid assets response')
 
-  return { chainId, assets }
+  return { chainId, assets: sortTradableAssets(assets) }
 }
 
 function parseSwapEnvelope(value: unknown): SwapJob {
@@ -269,10 +275,43 @@ function isTradableAsset(value: unknown): value is TradableAsset {
   if (typeof value.symbol !== 'string' || typeof value.name !== 'string') return false
   if (typeof value.decimals !== 'number' || !Number.isInteger(value.decimals)) return false
   if (value.source !== 'core' && value.source !== 'market') return false
+  if (value.imageUrl != null && typeof value.imageUrl !== 'string') return false
+  if (value.homepageUrl != null && typeof value.homepageUrl !== 'string') return false
+  if (value.isSpam != null && typeof value.isSpam !== 'boolean') return false
+  if (value.safetyLevel != null && typeof value.safetyLevel !== 'string') return false
+  if (typeof value.isConfigured !== 'boolean') return false
+  if (value.volume24HUsd != null && (typeof value.volume24HUsd !== 'number' || !Number.isFinite(value.volume24HUsd))) return false
   if (value.repoId != null && typeof value.repoId !== 'string') return false
   if (value.poolId != null && (typeof value.poolId !== 'string' || !isApiAddress(value.poolId))) return false
 
   return true
+}
+
+function sortTradableAssets(assets: readonly TradableAsset[]): TradableAsset[] {
+  return assets
+    .map((asset, index) => ({
+      asset: {
+        ...asset,
+        isConfigured: asset.isConfigured === true,
+      },
+      index,
+    }))
+    .sort((left, right) => compareTradableAssets(left.asset, right.asset) || left.index - right.index)
+    .map(({ asset }) => asset)
+}
+
+function compareTradableAssets(left: TradableAsset, right: TradableAsset): number {
+  if (left.isConfigured !== right.isConfigured) return left.isConfigured ? -1 : 1
+
+  const leftVolume = readVolumeSortValue(left)
+  const rightVolume = readVolumeSortValue(right)
+  if (leftVolume !== rightVolume) return rightVolume - leftVolume
+
+  return 0
+}
+
+function readVolumeSortValue(asset: TradableAsset): number {
+  return asset.volume24HUsd === undefined ? -1 : asset.volume24HUsd
 }
 
 function readString(value: unknown, name: string): string {
