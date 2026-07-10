@@ -1,4 +1,6 @@
 ## Coding Guidelines For Agents
+* When working inside a package or subproject, read its nearest sub-AGENTS.md first.
+
 * Keep components pure: render from props, state, and context without side effects or mutations.
 
 * Organize code by feature, with dependencies flowing from app to features to shared modules.
