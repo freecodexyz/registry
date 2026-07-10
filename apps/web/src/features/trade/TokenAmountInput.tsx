@@ -1,13 +1,15 @@
-import { useId, type ChangeEvent } from 'react'
+import { useId, useState, type ChangeEvent } from 'react'
 import type { Address } from 'viem'
-import { Select } from '@freecodexyz/ui'
 import type { TradableAsset } from './tradeApi'
 import { sanitizeDecimalInput } from './tradeUtils'
+import { TokenSelectorDialog } from './TokenSelectorDialog'
+import type { TokenBalanceMap } from './useTokenBalance'
 
 type TokenAmountInputProps = {
   label: string;
   amount: string;
   assets: readonly TradableAsset[];
+  balances: TokenBalanceMap;
   token: TradableAsset | null;
   metadata: string;
   balance: string;
@@ -20,6 +22,7 @@ export function TokenAmountInput({
   label,
   amount,
   assets,
+  balances,
   token,
   metadata,
   balance,
@@ -28,14 +31,14 @@ export function TokenAmountInput({
   onTokenChange,
 }: TokenAmountInputProps) {
   const amountInputId = useId()
-  const tokenSelectId = useId()
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false)
 
   function handleAmountChange(event: ChangeEvent<HTMLInputElement>) {
     onAmountChange?.(sanitizeDecimalInput(event.currentTarget.value))
   }
 
-  function handleTokenChange(event: ChangeEvent<HTMLSelectElement>) {
-    onTokenChange(event.currentTarget.value as Address)
+  function handleTokenChange(address: Address) {
+    onTokenChange(address)
   }
 
   return (
@@ -56,18 +59,28 @@ export function TokenAmountInput({
           onChange={handleAmountChange}
           aria-label={`${label} amount`}
         />
-        <label className="token-amount-input__token" htmlFor={tokenSelectId}>
-          <Select id={tokenSelectId} value={token?.address ?? ''} onChange={handleTokenChange} aria-label={`${label} token`}>
-            {assets.map((swapToken) => (
-              <option key={swapToken.address} value={swapToken.address}>{swapToken.symbol}</option>
-            ))}
-          </Select>
-        </label>
+        <button
+          className="token-amount-input__token"
+          type="button"
+          onClick={() => setIsSelectorOpen(true)}
+          aria-haspopup="dialog"
+        >
+          <span>{token?.symbol ?? 'Select'}</span>
+        </button>
       </div>
       <div className="token-amount-input__bottom">
         <span>{metadata}</span>
         <span>Balance <span className="token-swap-widget__number">{balance}</span></span>
       </div>
+      {isSelectorOpen && (
+        <TokenSelectorDialog
+          assets={assets}
+          balances={balances}
+          selectedToken={token}
+          onSelect={handleTokenChange}
+          onClose={() => setIsSelectorOpen(false)}
+        />
+      )}
     </section>
   )
 }

@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, useState, type FormEvent } from 'react'
+import { useReducer, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import type { Address } from 'viem'
@@ -12,14 +12,18 @@ import {
   createSwapJob,
   loadTradableAssets,
   submitWalletAction,
+  type CreateSwapJobInput,
   type SwapJob,
+  type TradableAsset,
 } from './tradeApi'
 import { readQuoteOutputAmount, readQuoteInputUsd, readQuoteOutputUsd } from './tradeQuote'
 import {
   initialSwapWorkflow,
   isBusyWorkflow,
   swapFromWorkflow,
+  swapReadyWorkflow,
   swapWorkflowReducer,
+  type SwapWorkflow,
   visibleSwapWorkflow,
 } from './tradeWorkflow'
 import {
@@ -40,7 +44,7 @@ import {
   readOptionalSupportedSwapChainId,
   readSupportedSwapChainId,
 } from './tradeUtils'
-import { useTokenBalance } from './useTokenBalance'
+import { balanceKey, useTokenBalances, type TokenBalanceState } from './useTokenBalance'
 
 export function TokenSwapWidget() {
   const { address, connector } = useAccount()
@@ -49,7 +53,6 @@ export function TokenSwapWidget() {
   const [buyAddress, setBuyAddress] = useState<string | null>(null)
   const [sellAmountInput, setSellAmountInput] = useState('')
   const [workflow, dispatch] = useReducer(swapWorkflowReducer, initialSwapWorkflow)
-  const quoteRequestRef = useRef(0)
   const assetsQuery = useQuery({
     queryKey: ['trade-assets', isSignedIn],
     queryFn: ({ signal }) => loadTradableAssets(signal),
@@ -61,15 +64,47 @@ export function TokenSwapWidget() {
   const sellAsset = assetByAddress(assets, sellAddress)
   const buyAsset = buyAssetByAddress(assets, sellAsset, buyAddress)
   const supportedBalanceChainId = readOptionalSupportedSwapChainId(swapChainId)
-  const sellBalance = useTokenBalance(address, sellAsset, supportedBalanceChainId, isSignedIn)
-  const buyBalance = useTokenBalance(address, buyAsset, supportedBalanceChainId, isSignedIn)
+  const tokenBalances = useTokenBalances(address, assets, supportedBalanceChainId, isSignedIn)
+  const sellBalance = readTokenBalance(tokenBalances, sellAsset)
+  const buyBalance = readTokenBalance(tokenBalances, buyAsset)
   const sellAmount = sellAsset ? parseSellAmount(sellAmountInput, sellAsset.decimals) : null
-  const currentSwap = swapFromWorkflow(workflow)
+  const hasSameAsset = isSameAddress(sellAsset?.address ?? null, buyAsset?.address ?? null)
+  const hasInsufficientSellBalance = isAmountGreaterThanBalance(sellAmount, sellBalance.amount)
+  const quoteInput = createQuoteInput({
+    isSignedIn,
+    address,
+    sellAsset,
+    buyAsset,
+    sellAmount,
+    swapChainId,
+    hasSameAsset,
+    hasInsufficientSellBalance,
+    assetsStatus: assetsQuery.status,
+  })
+  const quoteQuery = useQuery({
+    queryKey: [
+      'trade-swap-quote',
+      quoteInput?.chainId ?? null,
+      quoteInput?.tokenIn ?? null,
+      quoteInput?.tokenOut ?? null,
+      quoteInput?.amount ?? null,
+      quoteInput?.swapper ?? null,
+      quoteInput?.slippageTolerance ?? null,
+    ],
+    queryFn: async ({ signal }) => {
+      if (!quoteInput) throw new Error('quote input unavailable')
+      const swap = await createSwapJob(quoteInput, signal)
+      return await pollSwap(swap, signal)
+    },
+    enabled: quoteInput !== null,
+  })
+  const activeWorkflow = workflow.status === 'idle' && quoteInput
+    ? quoteWorkflowFromQuery(quoteQuery.status, quoteQuery.error, quoteQuery.data)
+    : workflow
+  const currentSwap = swapFromWorkflow(activeWorkflow)
   const buyAmountInput = buyAsset ? formatBaseUnitAmount(readQuoteOutputAmount(currentSwap), buyAsset.decimals) : ''
   const sellUsdValue = formatUsdValue(readQuoteInputUsd(currentSwap))
   const buyUsdValue = formatUsdValue(readQuoteOutputUsd(currentSwap))
-  const hasSameAsset = isSameAddress(sellAsset?.address ?? null, buyAsset?.address ?? null)
-  const canRequestQuote = Boolean(isSignedIn && address && sellAsset && buyAsset && sellAmount && swapChainId && !hasSameAsset && assetsQuery.status === 'success')
   const canSubmit = Boolean(
     isSignedIn &&
     address &&
@@ -79,44 +114,11 @@ export function TokenSwapWidget() {
     sellAmount &&
     swapChainId &&
     !hasSameAsset &&
+    !hasInsufficientSellBalance &&
     assetsQuery.status === 'success' &&
-    (workflow.status === 'action_required' || workflow.status === 'ready_to_sign'),
+    (activeWorkflow.status === 'action_required' || activeWorkflow.status === 'ready_to_sign'),
   )
-  const visibleWorkflow = visibleSwapWorkflow(workflow, assetsQuery.status, assetsQuery.error, isSignedIn, assets.length > 0, hasSameAsset)
-
-  useEffect(() => {
-    if (!canRequestQuote || !address || !sellAsset || !buyAsset || !sellAmount || !swapChainId) return
-
-    const controller = new AbortController()
-    const requestId = quoteRequestRef.current + 1
-    const quoteInput = {
-      chainId: swapChainId,
-      tokenIn: sellAsset.address,
-      tokenOut: buyAsset.address,
-      amount: sellAmount,
-      swapper: address,
-      slippageTolerance: SLIPPAGE_TOLERANCE,
-    }
-    quoteRequestRef.current = requestId
-
-    async function requestQuote() {
-      try {
-        dispatch({ type: 'submitting' })
-        const swap = await createSwapJob(quoteInput, controller.signal)
-        const readySwap = await pollSwap(swap, controller.signal)
-        if (quoteRequestRef.current === requestId) dispatch({ type: 'swap_ready', swap: readySwap })
-      } catch (err) {
-        if (isAbortError(err)) return
-        if (quoteRequestRef.current === requestId) dispatch({ type: 'failed', message: errorMessage(err) })
-      }
-    }
-
-    void requestQuote()
-
-    return () => {
-      controller.abort()
-    }
-  }, [address, assetsQuery.status, buyAsset, canRequestQuote, hasSameAsset, isSignedIn, sellAmount, sellAsset, swapChainId])
+  const visibleWorkflow = visibleSwapWorkflow(activeWorkflow, assetsQuery.status, assetsQuery.error, isSignedIn, assets.length > 0, hasSameAsset, hasInsufficientSellBalance)
 
   function resetRoute(message = 'Enter an amount') {
     dispatch({ type: 'reset', message })
@@ -146,15 +148,19 @@ export function TokenSwapWidget() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!address || !connector || !sellAsset || !buyAsset || !sellAmount || !swapChainId) return
+    if (hasInsufficientSellBalance) {
+      dispatch({ type: 'failed', message: 'Insufficient balance' })
+      return
+    }
 
     try {
-      if (workflow.status === 'action_required') {
-        await completeRequiredAction(workflow.swap, address)
+      if (activeWorkflow.status === 'action_required') {
+        await completeRequiredAction(activeWorkflow.swap, address)
         return
       }
 
-      if (workflow.status === 'ready_to_sign') {
-        await submitSwapTransaction(workflow.swap)
+      if (activeWorkflow.status === 'ready_to_sign') {
+        await submitSwapTransaction(activeWorkflow.swap)
         return
       }
 
@@ -218,9 +224,10 @@ export function TokenSwapWidget() {
           label="Sell"
           amount={sellAmountInput}
           assets={assets}
+          balances={tokenBalances}
           token={sellAsset}
           metadata={sellUsdValue}
-          balance={sellBalance}
+          balance={sellBalance.label}
           onAmountChange={handleAmountChange}
           onTokenChange={handleSellTokenChange}
         />
@@ -229,9 +236,10 @@ export function TokenSwapWidget() {
           label="Buy"
           amount={buyAmountInput}
           assets={assets}
+          balances={tokenBalances}
           token={buyAsset}
           metadata={buyUsdValue}
-          balance={buyBalance}
+          balance={buyBalance.label}
           readOnly
           onTokenChange={handleBuyTokenChange}
         />
@@ -242,6 +250,59 @@ export function TokenSwapWidget() {
   )
 }
 
-function isAbortError(error: unknown) {
-  return error instanceof DOMException && error.name === 'AbortError'
+const UNKNOWN_BALANCE: TokenBalanceState = { label: '--', amount: null }
+
+function readTokenBalance(balances: Record<string, TokenBalanceState>, asset: TradableAsset | null) {
+  return asset ? balances[balanceKey(asset.address)] ?? UNKNOWN_BALANCE : UNKNOWN_BALANCE
+}
+
+function isAmountGreaterThanBalance(amount: string | null, balance: string | null) {
+  if (!amount || !balance) return false
+
+  try {
+    return BigInt(amount) > BigInt(balance)
+  } catch {
+    return false
+  }
+}
+
+function createQuoteInput({
+  isSignedIn,
+  address,
+  sellAsset,
+  buyAsset,
+  sellAmount,
+  swapChainId,
+  hasSameAsset,
+  hasInsufficientSellBalance,
+  assetsStatus,
+}: {
+  isSignedIn: boolean;
+  address: Address | undefined;
+  sellAsset: TradableAsset | null;
+  buyAsset: TradableAsset | null;
+  sellAmount: string | null;
+  swapChainId: number | null;
+  hasSameAsset: boolean;
+  hasInsufficientSellBalance: boolean;
+  assetsStatus: 'pending' | 'error' | 'success';
+}): CreateSwapJobInput | null {
+  if (!isSignedIn || !address || !sellAsset || !buyAsset || !sellAmount || !swapChainId || hasSameAsset || hasInsufficientSellBalance || assetsStatus !== 'success') return null
+
+  return {
+    chainId: swapChainId,
+    tokenIn: sellAsset.address,
+    tokenOut: buyAsset.address,
+    amount: sellAmount,
+    swapper: address,
+    slippageTolerance: SLIPPAGE_TOLERANCE,
+  }
+}
+
+function quoteWorkflowFromQuery(status: 'pending' | 'error' | 'success', error: Error | null, swap: SwapJob | undefined): SwapWorkflow {
+  if (status === 'pending') return { status: 'submitting', message: 'Requesting route' }
+  if (status === 'error') return { status: 'failed', message: errorMessage(error) }
+  if (swap) return swapReadyWorkflow(swap)
+
+  return { status: 'failed', message: 'Swap quote unavailable' }
 }

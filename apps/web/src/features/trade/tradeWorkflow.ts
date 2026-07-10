@@ -36,10 +36,7 @@ export function swapWorkflowReducer(_: SwapWorkflow, action: SwapWorkflowAction)
     case 'polling':
       return { status: 'polling', message: stageMessage(action.swap), swap: action.swap }
     case 'swap_ready':
-      if (action.swap.status === 'action_required') return { status: 'action_required', message: actionMessage(action.swap), swap: action.swap }
-      if (action.swap.status === 'completed') return { status: 'ready_to_sign', message: 'Swap transaction ready', swap: action.swap }
-      if (action.swap.status === 'failed') return { status: 'failed', message: action.swap.error?.message ?? 'Swap failed', swap: action.swap }
-      return { status: 'polling', message: stageMessage(action.swap), swap: action.swap }
+      return swapReadyWorkflow(action.swap)
     case 'wallet_pending':
       return { status: 'wallet_pending', message: action.message, swap: action.swap }
     case 'submitted':
@@ -74,6 +71,14 @@ export function swapFromWorkflow(workflow: SwapWorkflow): SwapJob | null {
   }
 }
 
+export function swapReadyWorkflow(swap: SwapJob): SwapWorkflow {
+  if (swap.status === 'action_required') return { status: 'action_required', message: actionMessage(swap), swap }
+  if (swap.status === 'completed') return { status: 'ready_to_sign', message: 'Swap transaction ready', swap }
+  if (swap.status === 'failed') return { status: 'failed', message: swap.error?.message ?? 'Swap failed', swap }
+
+  return { status: 'polling', message: stageMessage(swap), swap }
+}
+
 export function visibleSwapWorkflow(
   workflow: SwapWorkflow,
   assetsStatus: 'pending' | 'error' | 'success',
@@ -81,12 +86,14 @@ export function visibleSwapWorkflow(
   isSignedIn: boolean,
   hasAssets: boolean,
   hasSameAsset: boolean,
+  hasInsufficientBalance: boolean,
 ): SwapWorkflow {
   if (!isSignedIn) return { status: 'idle', message: 'Sign in to trade' }
   if (assetsStatus === 'pending') return { status: 'idle', message: 'Loading assets' }
   if (assetsStatus === 'error') return { status: 'failed', message: error?.message ?? 'Unable to load assets' }
   if (!hasAssets) return { status: 'failed', message: 'No tradable assets' }
   if (hasSameAsset) return { status: 'failed', message: 'Select a different token' }
+  if (hasInsufficientBalance) return { status: 'failed', message: 'Insufficient balance' }
 
   return workflow
 }
