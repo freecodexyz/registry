@@ -7,6 +7,7 @@ import { ThemeSwitch } from '../shared/theme/ThemeSwitch'
 import logoUrl from '../assets/fcf-logo.svg'
 
 const MOBILE_NAV_QUERY = '(max-width: 720px)'
+const MARKETPLACE_NAV_ENABLED = false
 
 function isMobileNav() {
   return typeof window !== 'undefined' && window.matchMedia(MOBILE_NAV_QUERY).matches
@@ -61,7 +62,7 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
                 {showPageLinks && (
                   <div className="top-navbar__page-links top-navbar__page-links--mobile" aria-label="Available pages">
                     <NavLink className="top-navbar__page-link" to="/registry" role="menuitem" onClick={() => setIsMenuOpen(false)}>Registry</NavLink>
-                    <NavLink className="top-navbar__page-link" to="/marketplace" role="menuitem" onClick={() => setIsMenuOpen(false)}>Marketplace</NavLink>
+                    {MARKETPLACE_NAV_ENABLED && <NavLink className="top-navbar__page-link" to="/marketplace" role="menuitem" onClick={() => setIsMenuOpen(false)}>Marketplace</NavLink>}
                   </div>
                 )}
                 <div className="top-navbar__mobile-actions">
@@ -78,7 +79,7 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
         {showPageLinks && !isMobile && (
           <div className="top-navbar__page-links" aria-label="Available pages">
             <NavLink className="top-navbar__page-link" to="/registry">Registry</NavLink>
-            <NavLink className="top-navbar__page-link" to="/marketplace">Marketplace</NavLink>
+            {MARKETPLACE_NAV_ENABLED && <NavLink className="top-navbar__page-link" to="/marketplace">Marketplace</NavLink>}
           </div>
         )}
         {!isMobile && (

@@ -9,6 +9,7 @@ import '../App.css'
 
 const Registry = lazy(() => import('../features/registry/Registry').then(({ Registry }) => ({ default: Registry })))
 const Marketplace = lazy(() => import('../features/marketplace/Marketplace').then(({ Marketplace }) => ({ default: Marketplace })))
+const MARKETPLACE_ROUTE_ENABLED = false
 
 type AccessState = 'locked' | 'unlocked'
 
@@ -46,18 +47,22 @@ function App() {
             </ErrorBoundary>
           )}
         />
-        <Route
-          path="/marketplace"
-          element={(
-            <ErrorBoundary label="Marketplace route" resetKey={`marketplace:${accessState}`}>
-              <ProtectedRoute accessState={accessState}>
-                <Suspense fallback={<RouteLoading label="Loading marketplace..." />}>
-                  <Marketplace />
-                </Suspense>
-              </ProtectedRoute>
-            </ErrorBoundary>
-          )}
-        />
+        {MARKETPLACE_ROUTE_ENABLED ? (
+          <Route
+            path="/marketplace"
+            element={(
+              <ErrorBoundary label="Marketplace route" resetKey={`marketplace:${accessState}`}>
+                <ProtectedRoute accessState={accessState}>
+                  <Suspense fallback={<RouteLoading label="Loading marketplace..." />}>
+                    <Marketplace />
+                  </Suspense>
+                </ProtectedRoute>
+              </ErrorBoundary>
+            )}
+          />
+        ) : (
+          <Route path="/marketplace" element={<Navigate to="/registry" replace />} />
+        )}
         <Route path="*" element={<Navigate to="/registry" replace />} />
       </Routes>
     </>
