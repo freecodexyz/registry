@@ -8,13 +8,14 @@ import { isRecord, readRecord, readSupportedSwapChainId } from './tradeUtils'
 const POLL_INTERVAL_MS = 900
 const POLL_ATTEMPTS = 40
 
-export async function pollSwap(initial: SwapJob): Promise<SwapJob> {
+export async function pollSwap(initial: SwapJob, signal?: AbortSignal): Promise<SwapJob> {
   let swap = initial
 
   for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
+    throwIfAborted(signal)
     if (swap.status === 'action_required' || swap.status === 'completed' || swap.status === 'failed') return swap
-    await sleep(POLL_INTERVAL_MS)
-    swap = await loadSwapJob(swap.id)
+    await sleep(POLL_INTERVAL_MS, signal)
+    swap = await loadSwapJob(swap.id, signal)
   }
 
   return swap
@@ -117,6 +118,17 @@ function parseQuantity(value: string): bigint {
   return value.startsWith('0x') ? BigInt(value) : BigInt(value || '0')
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+function throwIfAborted(signal?: AbortSignal) {
+  if (signal?.aborted) throw new DOMException('Swap polling aborted', 'AbortError')
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(resolve, ms)
+
+    signal?.addEventListener('abort', () => {
+      window.clearTimeout(timeout)
+      reject(new DOMException('Swap polling aborted', 'AbortError'))
+    }, { once: true })
+  })
 }

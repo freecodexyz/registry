@@ -1,4 +1,4 @@
-import { useReducer, useState, type FormEvent } from 'react'
+import { useEffect, useReducer, useRef, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import type { Address } from 'viem'
@@ -49,6 +49,7 @@ export function TokenSwapWidget() {
   const [buyAddress, setBuyAddress] = useState<string | null>(null)
   const [sellAmountInput, setSellAmountInput] = useState('')
   const [workflow, dispatch] = useReducer(swapWorkflowReducer, initialSwapWorkflow)
+  const quoteRequestRef = useRef(0)
   const assetsQuery = useQuery({
     queryKey: ['trade-assets', isSignedIn],
     queryFn: ({ signal }) => loadTradableAssets(signal),
@@ -68,8 +69,54 @@ export function TokenSwapWidget() {
   const sellUsdValue = formatUsdValue(readQuoteInputUsd(currentSwap))
   const buyUsdValue = formatUsdValue(readQuoteOutputUsd(currentSwap))
   const hasSameAsset = isSameAddress(sellAsset?.address ?? null, buyAsset?.address ?? null)
-  const canSubmit = Boolean(isSignedIn && address && connector && sellAsset && buyAsset && sellAmount && swapChainId && !hasSameAsset && assetsQuery.status === 'success')
+  const canRequestQuote = Boolean(isSignedIn && address && sellAsset && buyAsset && sellAmount && swapChainId && !hasSameAsset && assetsQuery.status === 'success')
+  const canSubmit = Boolean(
+    isSignedIn &&
+    address &&
+    connector &&
+    sellAsset &&
+    buyAsset &&
+    sellAmount &&
+    swapChainId &&
+    !hasSameAsset &&
+    assetsQuery.status === 'success' &&
+    (workflow.status === 'action_required' || workflow.status === 'ready_to_sign'),
+  )
   const visibleWorkflow = visibleSwapWorkflow(workflow, assetsQuery.status, assetsQuery.error, isSignedIn, assets.length > 0, hasSameAsset)
+
+  useEffect(() => {
+    if (!canRequestQuote || !address || !sellAsset || !buyAsset || !sellAmount || !swapChainId) return
+
+    const controller = new AbortController()
+    const requestId = quoteRequestRef.current + 1
+    const quoteInput = {
+      chainId: swapChainId,
+      tokenIn: sellAsset.address,
+      tokenOut: buyAsset.address,
+      amount: sellAmount,
+      swapper: address,
+      slippageTolerance: SLIPPAGE_TOLERANCE,
+    }
+    quoteRequestRef.current = requestId
+
+    async function requestQuote() {
+      try {
+        dispatch({ type: 'submitting' })
+        const swap = await createSwapJob(quoteInput, controller.signal)
+        const readySwap = await pollSwap(swap, controller.signal)
+        if (quoteRequestRef.current === requestId) dispatch({ type: 'swap_ready', swap: readySwap })
+      } catch (err) {
+        if (isAbortError(err)) return
+        if (quoteRequestRef.current === requestId) dispatch({ type: 'failed', message: errorMessage(err) })
+      }
+    }
+
+    void requestQuote()
+
+    return () => {
+      controller.abort()
+    }
+  }, [address, assetsQuery.status, buyAsset, canRequestQuote, hasSameAsset, isSignedIn, sellAmount, sellAsset, swapChainId])
 
   function resetRoute(message = 'Enter an amount') {
     dispatch({ type: 'reset', message })
@@ -111,17 +158,7 @@ export function TokenSwapWidget() {
         return
       }
 
-      dispatch({ type: 'submitting' })
-      const swap = await createSwapJob({
-        chainId: swapChainId,
-        tokenIn: sellAsset.address,
-        tokenOut: buyAsset.address,
-        amount: sellAmount,
-        swapper: address,
-        slippageTolerance: SLIPPAGE_TOLERANCE,
-      })
-      const readySwap = await pollSwap(swap)
-      dispatch({ type: 'swap_ready', swap: readySwap })
+      return
     } catch (err) {
       dispatch({ type: 'failed', message: errorMessage(err) })
     }
@@ -203,4 +240,8 @@ export function TokenSwapWidget() {
       </form>
     </Card>
   )
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === 'AbortError'
 }

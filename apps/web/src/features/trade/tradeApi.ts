@@ -101,11 +101,12 @@ export async function loadTradableAssets(signal?: AbortSignal): Promise<Tradable
   return parseAssetsResponse(await response.json() as unknown)
 }
 
-export async function createSwapJob(input: CreateSwapJobInput): Promise<SwapJob> {
+export async function createSwapJob(input: CreateSwapJobInput, signal?: AbortSignal): Promise<SwapJob> {
   const response = await fetch('/api/trade/swaps', {
     method: 'POST',
     credentials: 'include',
     headers: { 'content-type': 'application/json' },
+    signal,
     body: JSON.stringify({
       ...input,
       type: 'EXACT_INPUT',
