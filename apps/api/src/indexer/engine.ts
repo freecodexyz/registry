@@ -27,6 +27,7 @@ export class IndexerEngine {
     private readonly client: ChainHeadClient;
     private readonly checkpoint: CheckpointStore;
     private readonly steps: readonly IndexerStep[];
+    private isTicking = false;
 
     constructor(options: IndexerEngineOptions) {
         this.client = options.client;
@@ -35,15 +36,22 @@ export class IndexerEngine {
     }
 
     async tick(): Promise<void> {
-        const head = await this.client.getBlockNumber();
-        const range = await this.getRange(head);
-        if (!range) return;
+        if (this.isTicking) return;
+        this.isTicking = true;
 
-        for (const step of this.steps) {
-            await step.index(range);
+        try {
+            const head = await this.client.getBlockNumber();
+            const range = await this.getRange(head);
+            if (!range) return;
+
+            for (const step of this.steps) {
+                await step.index(range);
+            }
+
+            this.checkpoint.setLastIndexedBlock(range.toBlock);
+        } finally {
+            this.isTicking = false;
         }
-
-        this.checkpoint.setLastIndexedBlock(range.toBlock);
     }
 
     protected async getRange(head: bigint): Promise<BlockRange | null> {
