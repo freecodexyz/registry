@@ -2,7 +2,6 @@ import { useId, useState, type ChangeEvent } from 'react'
 import type { Address } from 'viem'
 import { DialogClose, Scrim } from '@freecodexyz/ui'
 import type { TradableAsset } from './tradeApi'
-import { NumericText } from './NumericText'
 import { TokenIcon } from './TokenIcon'
 import { balanceKey, type TokenBalanceMap, type TokenBalanceState } from './useTokenBalance'
 
@@ -44,7 +43,7 @@ export function TokenSelectorDialog({ assets, balances, selectedToken, onSelect,
       >
         <header className="token-selector-dialog__top">
           <h2 id={titleId}>Select a token</h2>
-          <DialogClose className="token-selector-dialog__close" aria-label="Close token selector" onClick={onClose}>X</DialogClose>
+          <DialogClose className="token-selector-dialog__close" aria-label="Close token selector" onClick={onClose}>×</DialogClose>
         </header>
         <input
           className="token-selector-dialog__search"
@@ -132,8 +131,26 @@ function TokenSelectorRow({ asset, balance, selected, onSelect }: { asset: Trada
           <span className="token-selector-dialog__name">{asset.name}</span>
         </span>
       </span>
-      <span className="token-selector-dialog__balance"><NumericText value={balance.label} /></span>
+      <TokenSelectorBalance asset={asset} balance={balance} />
     </button>
+  )
+}
+
+function TokenSelectorBalance({ asset, balance }: { asset: TradableAsset; balance: TokenBalanceState }) {
+  if (!balance.amount) {
+    return <span className="token-selector-dialog__balance token-selector-dialog__balance--muted">{balance.label}</span>
+  }
+
+  const symbolSuffix = ` ${asset.symbol}`
+  const amountLabel = balance.label.endsWith(symbolSuffix)
+    ? balance.label.slice(0, -symbolSuffix.length)
+    : balance.label
+
+  return (
+    <span className="token-selector-dialog__balance" title={balance.label}>
+      <span className="token-selector-dialog__balance-amount">{amountLabel}</span>
+      <span className="token-selector-dialog__balance-symbol">{asset.symbol}</span>
+    </span>
   )
 }
 

@@ -440,19 +440,32 @@
 }
 
 .token-selector-dialog__top h2 {
-  margin: 0;
+  margin: 0 0 var(--space-2);
+  max-width: 760px;
   color: var(--fg);
-  font-family: var(--sans);
-  font-size: var(--t-h3);
+  font-size: clamp(28px, 4vw, var(--t-h3));
   font-weight: var(--w-semibold);
   line-height: var(--lh-snug);
-  letter-spacing: 0;
+  letter-spacing: var(--ls-tight);
 }
 
-.token-selector-dialog__close {
-  position: static;
+.token-selector-dialog__close,
+.repo-drawer__close {
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
   flex: 0 0 auto;
+  padding: 0;
+  border: var(--bw) solid var(--rule-strong);
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
 }
+
+.token-selector-dialog__close { position: static; }
 
 .token-selector-dialog__search {
   appearance: none;
@@ -564,7 +577,6 @@
 }
 
 .token-selector-dialog__name,
-.token-selector-dialog__balance,
 .token-selector-dialog__empty {
   color: var(--fg-dim);
   font-family: var(--sans);
@@ -580,11 +592,45 @@
 }
 
 .token-selector-dialog__balance {
-  max-width: 144px;
+  min-width: 0;
+  max-width: 172px;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: var(--t-sm);
+  font-weight: var(--w-medium);
+  line-height: var(--lh-snug);
+  letter-spacing: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.token-selector-dialog__balance-amount {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-variant-numeric: tabular-nums;
+}
+
+.token-selector-dialog__balance-symbol {
+  flex: 0 0 auto;
+  color: var(--fg-dim);
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  font-weight: var(--w-medium);
+  letter-spacing: var(--ls-mono);
+}
+
+.token-selector-dialog__balance--muted {
+  display: block;
+  color: var(--fg-dim);
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  font-weight: var(--w-regular);
+  letter-spacing: 0;
 }
 
 .token-selector-dialog__empty {
@@ -2052,20 +2098,6 @@
 
 .repo-drawer__title strong {
   font-weight: var(--w-semibold);
-}
-
-.repo-drawer__close {
-  width: 32px;
-  height: 32px;
-  display: inline-grid;
-  place-items: center;
-  flex: 0 0 auto;
-  border: var(--bw) solid var(--rule-strong);
-  background: transparent;
-  color: var(--fg);
-  cursor: pointer;
-  font: inherit;
-  line-height: 1;
 }
 
 .repo-drawer__middle {
