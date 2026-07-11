@@ -25,7 +25,8 @@ Import the global styles once at the app entry stylesheet:
 ## Taste
 
 - Minimal, technical, registry-like.
-- Geist for UI, Geist Mono for labels, metadata, addresses, IDs, and table utility text.
+- Geist is the default UI font across the app.
+- Use Geist Mono only for numeric values. Labels, metadata, addresses, IDs, table utility text, token symbols, route text, tabs, buttons, and helper copy should use Geist unless the value is numeric.
 - Thin rules, sparse spacing, compact tables, borderless navigation where possible.
 - Use dark/light contrast deliberately: black primary actions, transparent ghost actions, accent only for state or focus.
 - Links should feel precise: understated text, small underline/rule, external links for GitHub and chain explorers.

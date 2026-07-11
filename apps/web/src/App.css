@@ -308,7 +308,12 @@
 
 .trade-view-switcher__tab {
   min-width: 96px;
+  font-family: var(--sans);
+  font-size: var(--t-sm);
+  font-weight: var(--w-medium);
+  letter-spacing: 0;
   text-align: center;
+  text-transform: none;
 }
 
 .trade-view-switcher__panel {
@@ -318,7 +323,7 @@
 .token-swap-widget {
   width: min(100%, 460px);
   padding: var(--space-5);
-  border-color: var(--rule-strong);
+  border-color: var(--rule);
   background: var(--bg-soft);
 }
 
