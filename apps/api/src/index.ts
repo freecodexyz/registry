@@ -27,7 +27,7 @@ const RIK_ADDRESS                   = process.env.CONTRACT_ADDRESS as `0x${strin
 const RPC_URL                       = (!process.env.RPC_URL || process.env.RPC_URL === "") ? "https://base-sepolia-rpc.publicnode.com" : process.env.RPC_URL;
 const BASE_SEPOLIA_STATE_VIEW       = "0x571291b572ed32ce6751a2cb2486ebee8defb9b4";
 const STATE_VIEW                    = (!process.env.STATE_VIEW || process.env.STATE_VIEW === "") ? BASE_SEPOLIA_STATE_VIEW : process.env.STATE_VIEW as `0x${string}`;
-const DEFAULT_LIST_BLOCK_RANGE      = 100n;
+const DEFAULT_LIST_BLOCK_RANGE      = 1_200_000n; // backfill ~1 month
 const ALLOWED_ORIGINS               = ["http://localhost:5173"];
 const SIWE_DOMAIN                   = (!process.env.SIWE_DOMAIN || process.env.SIWE_DOMAIN === "") ? "localhost:5173" : process.env.SIWE_DOMAIN;
 const SESSION_KEY                   = (!process.env.SESSION_KEY || process.env.SESSION_KEY === "") ? randomBytes(32) : process.env.SESSION_KEY;
