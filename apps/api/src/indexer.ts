@@ -15,7 +15,11 @@ const EVENTS_SOCKET_HOST = (!process.env.EVENTS_SOCKET_HOST || process.env.EVENT
 const EVENTS_SOCKET_PORT = readPort(process.env.EVENTS_SOCKET_PORT, 3055, "EVENTS_SOCKET_PORT");
 const INDEXER_STATE_KEY = `last_block:${CHAIN_ID}:${RIK_ADDRESS.toLowerCase()}`;
 const gh = getGhClient();
-const logsFetcher = new LogsFetcher(client, DEFAULT_LIST_BLOCK_RANGE);
+const logsFetcher = new LogsFetcher(client, DEFAULT_LIST_BLOCK_RANGE, {
+    onRateLimitRetry: ({ attempt, delayMs, fromBlock, toBlock }) => {
+        console.warn(`RPC rate limited while fetching logs ${fromBlock}-${toBlock}; retry ${attempt} in ${delayMs}ms`);
+    },
+});
 const checkpoint = new BlockCheckpointStore({
     db,
     key: INDEXER_STATE_KEY,
