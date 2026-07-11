@@ -153,6 +153,9 @@ function statusCodeOf(value: unknown, depth = 0): number | null {
     const status = value.status;
     if (typeof status === "number") return status;
 
+    const code = value.code;
+    if (typeof code === "number") return code;
+
     const responseStatus = statusCodeOf(value.response, depth + 1);
     if (responseStatus !== null) return responseStatus;
 

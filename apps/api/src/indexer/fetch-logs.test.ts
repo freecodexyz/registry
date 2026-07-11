@@ -58,6 +58,29 @@ describe("LogsFetcher", () => {
         expect(delays).toEqual([3_000]);
     });
 
+    it("backs off and retries Viem RPC errors that expose the rate limit as code", async () => {
+        const delays: number[] = [];
+        let attempts = 0;
+
+        const fetcher = new LogsFetcher({
+            async getLogs() {
+                attempts += 1;
+                if (attempts === 1) throw alchemyRpcRateLimitError();
+                return [];
+            },
+        }, 1n, {
+            rateLimitBaseDelayMs: 100,
+            sleep: async (ms) => {
+                delays.push(ms);
+            },
+        });
+
+        await fetcher.getLogs({ address: ADDRESS, fromBlock: 1n, toBlock: 1n });
+
+        expect(attempts).toBe(2);
+        expect(delays).toEqual([100]);
+    });
+
     it("continues to shrink chunks for non-rate-limit log range errors", async () => {
         const calls: [bigint | undefined, bigint | undefined][] = [];
         let attempts = 0;
@@ -91,6 +114,18 @@ function rateLimitError(retryAfter?: string): unknown {
                 if (name.toLowerCase() !== "retry-after") return null;
                 return retryAfter ?? null;
             },
+        },
+    };
+}
+
+function alchemyRpcRateLimitError(): unknown {
+    return {
+        code: 429,
+        shortMessage: "RPC Request failed.",
+        details: "Your app has exceeded its compute units per second capacity.",
+        cause: {
+            code: 429,
+            message: "Your app has exceeded its compute units per second capacity.",
         },
     };
 }
