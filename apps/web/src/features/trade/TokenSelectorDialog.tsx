@@ -1,4 +1,6 @@
-import { useId, useState, type ChangeEvent } from 'react'
+import { useId, useState, type ChangeEvent, type ReactNode } from 'react'
+import { FaCoins } from 'react-icons/fa'
+import { FiSearch } from 'react-icons/fi'
 import type { Address } from 'viem'
 import { DialogClose, Scrim } from '@freecodexyz/ui'
 import type { TradableAsset } from './tradeApi'
@@ -57,6 +59,7 @@ export function TokenSelectorDialog({ assets, balances, selectedToken, onSelect,
         <div className="token-selector-dialog__content">
           <TokenSelectorSection
             title="Your Tokens"
+            icon={<FaCoins aria-hidden="true" focusable="false" />}
             titleId={yourTokensId}
             assets={walletAssets}
             balances={balances}
@@ -65,7 +68,8 @@ export function TokenSelectorDialog({ assets, balances, selectedToken, onSelect,
             onSelect={handleTokenSelect}
           />
           <TokenSelectorSection
-            title="Tradable assets"
+            title="Tradable Assets"
+            icon={<FiSearch aria-hidden="true" focusable="false" />}
             titleId={tradableAssetsId}
             assets={visibleAssets}
             balances={balances}
@@ -81,6 +85,7 @@ export function TokenSelectorDialog({ assets, balances, selectedToken, onSelect,
 
 function TokenSelectorSection({
   title,
+  icon,
   titleId,
   assets,
   balances,
@@ -89,6 +94,7 @@ function TokenSelectorSection({
   onSelect,
 }: {
   title: string;
+  icon: ReactNode;
   titleId: string;
   assets: readonly TradableAsset[];
   balances: TokenBalanceMap;
@@ -98,7 +104,10 @@ function TokenSelectorSection({
 }) {
   return (
     <section className="token-selector-dialog__section" aria-labelledby={titleId}>
-      <h3 id={titleId}>{title}</h3>
+      <h3 id={titleId}>
+        <span className="token-selector-dialog__section-icon">{icon}</span>
+        <span>{title}</span>
+      </h3>
       <div className="token-selector-dialog__list">
         {assets.length > 0
           ? assets.map((asset) => (

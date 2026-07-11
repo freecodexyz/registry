@@ -597,6 +597,9 @@
   margin: 0;
   padding: var(--space-3) var(--space-5);
   border-bottom: var(--bw) solid var(--rule);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   color: var(--fg-dim);
   font-family: var(--sans);
   font-size: var(--t-micro);
@@ -604,6 +607,18 @@
   line-height: var(--lh-snug);
   letter-spacing: var(--ls-mono);
   text-transform: uppercase;
+}
+
+.token-selector-dialog__section-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent-deep);
+}
+
+.token-selector-dialog__section-icon svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
 }
 
 .token-selector-dialog__list {
