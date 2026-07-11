@@ -150,7 +150,7 @@ locals {
     GATE_TOKEN_MIN_BALANCE        = ""
     GITHUB_TOKEN                  = ""
     LAUNCHER_ADDRESS              = ""
-    RPC_URL                       = "https://base-sepolia-rpc.publicnode.com"
+    RPC_URL                       = "https://base-sepolia.g.alchemy.com/v2/hddkKdsOJYhbm256XDEce"
     SESSION_KEY                   = ""
     SESSION_COOKIE_SECURE         = "false"
     SIWE_DOMAIN                   = local.web_host
