@@ -36,6 +36,7 @@ const GATE_TOKEN_ADDRESS            = process.env.GATE_TOKEN_ADDRESS as `0x${str
 const GATE_TOKEN_MIN_BALANCE        = process.env.GATE_TOKEN_MIN_BALANCE ?? 1;
 const GITHUB_TOKEN                  = process.env.GITHUB_TOKEN;
 const REPO_CACHE_TTL_MS             = 5 * 60_000; // 5 min
+const GATE_CHECK_TTL_MS             = 15_000;
 const DEFAULT_PAGE_SIZE             = 50;
 const MAX_PAGE_SIZE                 = 200;
 const SHOULD_RUN_INDEXER            = process.env.INDEXER === "1" || process.env.INDEXER?.toLowerCase() === "true";
@@ -168,6 +169,7 @@ type RepoWithMetaRow = RepoRow & Pick<GithubMetaRow, "full_name" | "description"
 type Sort = "registered_at_desc" | "stars_desc" | "registered_at_asc";
 
 const repoCache = new Map<string, Cache<RepoGithubCache>>();
+const gateCache = new Map<`0x${string}`, Cache<Promise<boolean>>>();
 
 const ORDER: Record<Sort, string> = {
     registered_at_asc:  "r.registered_at ASC, r.repo_id ASC",
@@ -554,13 +556,26 @@ async function requireApiAccess(req: FastifyRequest): Promise<void> {
 }
 
 async function checkGate(address: `0x${string}`): Promise<boolean> {
-    const balance = await client.readContract({
+    const now = Date.now();
+    const key = address.toLowerCase() as `0x${string}`;
+    const hit = gateCache.get(key);
+    if (hit && now - hit.at < GATE_CHECK_TTL_MS) return hit.value;
+
+    const result = client.readContract({
         address: GATE_TOKEN_ADDRESS,
         abi: erc20Abi,
         functionName: "balanceOf",
         args: [address],
-    });
-    return balance >= GATE_TOKEN_MIN_BALANCE;
+    }).then((balance) => balance >= BigInt(GATE_TOKEN_MIN_BALANCE));
+
+    gateCache.set(key, { value: result, at: now });
+
+    try {
+        return await result;
+    } catch (err) {
+        gateCache.delete(key);
+        throw err;
+    }
 }
 
 await app.register(registerCandles);
