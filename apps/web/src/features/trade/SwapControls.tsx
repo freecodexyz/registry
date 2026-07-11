@@ -1,6 +1,7 @@
 import { FiArrowDown } from 'react-icons/fi'
 import { Button, SpecRow, Specs } from '@freecodexyz/ui'
 import { NumericText } from './NumericText'
+import { PointCloudSpinner } from '../../shared/visuals/PointCloudSpinner'
 import type { TradableAsset } from './tradeApi'
 import { readQuoteInputAmount, readQuoteOutputAmount } from './tradeQuote'
 import {
@@ -25,10 +26,14 @@ export function SwapDirectionButton({ onSwap, disabled }: { onSwap: () => void; 
 export function SwapActionButton({ workflow, disabled }: { workflow: SwapWorkflow; disabled: boolean }) {
   const label = actionButtonLabel(workflow)
   const txHash = txHashFromWorkflow(workflow)
+  const isRequestingRoute = workflow.status === 'submitting' && workflow.message === 'Requesting route'
 
   return (
     <Button className="token-swap-widget__action" type="submit" variant="dark" disabled={disabled || isBusyWorkflow(workflow) || isTerminalTxWorkflow(workflow)} block>
-      <span>{label}</span>
+      <span className="token-swap-widget__action-label">
+        {isRequestingRoute && <PointCloudSpinner className="token-swap-widget__action-spinner" label="" scale="xs" shape="knot" role="presentation" aria-hidden="true" />}
+        <span>{label}</span>
+      </span>
       {txHash && <span>{shortHash(txHash)}</span>}
     </Button>
   )

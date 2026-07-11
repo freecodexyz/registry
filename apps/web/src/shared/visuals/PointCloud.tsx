@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-type PointCloudShape = 'torus' | 'sphere' | 'knot' | 'gem' | 'helix' | 'mobius' | 'terrain'
+export type PointCloudShape = 'torus' | 'sphere' | 'knot' | 'gem' | 'helix' | 'mobius' | 'terrain'
 
 type RotationConfig = {
   axBase: number;

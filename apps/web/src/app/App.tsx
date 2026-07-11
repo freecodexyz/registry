@@ -1,10 +1,10 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router'
 import { TopNavbar } from './TopNavbar'
-import { Notice } from '@freecodexyz/ui'
 import { GateView } from '../features/auth/GateView'
 import { useAuthSession } from '../features/auth/useAuthSession'
 import { ErrorBoundary } from './ErrorBoundary'
+import { PointCloudSpinner } from '../shared/visuals/PointCloudSpinner'
 import '../App.css'
 
 const Registry = lazy(() => import('../features/registry/Registry').then(({ Registry }) => ({ default: Registry })))
@@ -22,7 +22,8 @@ function ProtectedRoute({ accessState, children }: { accessState: AccessState; c
 function RouteLoading({ label }: { label: string }) {
   return (
     <main className="route-loading" data-accent="emerald">
-      <Notice>{label}</Notice>
+      <PointCloudSpinner label={label} scale={0.72} shape="knot" />
+      <span className="route-loading__label">{label}</span>
     </main>
   )
 }
