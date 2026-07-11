@@ -301,28 +301,27 @@
 }
 
 .token-amount-input__top label {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: var(--t-micro);
-  letter-spacing: var(--ls-mono);
+  font-weight: var(--w-medium);
+  letter-spacing: var(--ls-normal);
   text-transform: uppercase;
 }
 
-.token-amount-input__top span,
-.token-amount-input__bottom span {
+.token-amount-input__top > span,
+.token-amount-input__bottom > span {
   min-width: 0;
 }
 
-.token-amount-input__bottom span:first-child {
+.token-amount-input__bottom > span:first-child {
   color: var(--fg);
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.token-amount-input__bottom span:last-child {
+.token-amount-input__bottom > span:last-child {
   white-space: nowrap;
 }
 
@@ -341,7 +340,7 @@
   border: 0;
   background: transparent;
   color: var(--fg);
-  font-family: var(--sans);
+  font-family: var(--mono);
   font-size: 30px;
   font-weight: var(--w-medium);
   font-variant-numeric: tabular-nums;
@@ -372,8 +371,8 @@
   border: var(--bw) solid var(--rule-strong);
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--mono);
-  font-size: var(--t-mono);
+  font-family: var(--sans);
+  font-size: var(--t-sm);
   font-weight: var(--w-medium);
   letter-spacing: 0;
   cursor: pointer;
@@ -558,7 +557,7 @@
 
 .token-selector-dialog__symbol {
   color: var(--fg);
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: var(--t-mono);
   font-weight: var(--w-semibold);
   letter-spacing: 0;
@@ -568,7 +567,7 @@
 .token-selector-dialog__balance,
 .token-selector-dialog__empty {
   color: var(--fg-dim);
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: var(--t-micro);
   line-height: var(--lh-snug);
   letter-spacing: 0;
@@ -602,7 +601,7 @@
   border-radius: 50%;
   background: var(--bg-soft);
   color: var(--fg-dim);
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: var(--t-micro);
   font-weight: var(--w-semibold);
   line-height: 1;
@@ -667,12 +666,12 @@
 }
 
 .token-swap-widget__status .v {
+  font-family: var(--sans);
   font-size: 11px;
 }
 
 .token-swap-widget__route {
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
+  font-family: var(--sans);
   letter-spacing: 0;
 }
 

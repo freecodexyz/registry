@@ -1,5 +1,6 @@
 import { FiArrowDown } from 'react-icons/fi'
 import { Button, SpecRow, Specs } from '@freecodexyz/ui'
+import { NumericText } from './NumericText'
 import type { TradableAsset } from './tradeApi'
 import { readQuoteInputAmount, readQuoteOutputAmount } from './tradeQuote'
 import {
@@ -45,7 +46,7 @@ export function SwapRouteStatus({ workflow, sellAsset, buyAsset, chainId }: { wo
       </SpecRow>
       <SpecRow label="Rate">
         {inputAmount && outputAmount && sellAsset && buyAsset
-          ? <>{inputAmount} {sellAsset.symbol} {'->'} <span className="token-swap-widget__number">{outputAmount}</span> {buyAsset.symbol}</>
+          ? <><NumericText value={inputAmount} /> {sellAsset.symbol} {'->'} <NumericText value={outputAmount} /> {buyAsset.symbol}</>
           : 'Unavailable'}
       </SpecRow>
       <SpecRow label="Network + Protocol">

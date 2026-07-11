@@ -1,6 +1,7 @@
 import { useId, useState, type ChangeEvent } from 'react'
 import type { Address } from 'viem'
 import type { TradableAsset } from './tradeApi'
+import { NumericText } from './NumericText'
 import { TokenIcon } from './TokenIcon'
 import { sanitizeDecimalInput } from './tradeUtils'
 import { TokenSelectorDialog } from './TokenSelectorDialog'
@@ -71,8 +72,8 @@ export function TokenAmountInput({
         </button>
       </div>
       <div className="token-amount-input__bottom">
-        <span>{metadata}</span>
-        <span>Balance <span className="token-swap-widget__number">{balance}</span></span>
+        <span><NumericText value={metadata} /></span>
+        <span>Balance <NumericText value={balance} /></span>
       </div>
       {isSelectorOpen && (
         <TokenSelectorDialog

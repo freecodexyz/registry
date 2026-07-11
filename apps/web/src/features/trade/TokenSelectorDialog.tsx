@@ -2,6 +2,7 @@ import { useId, useState, type ChangeEvent } from 'react'
 import type { Address } from 'viem'
 import { DialogClose, Scrim } from '@freecodexyz/ui'
 import type { TradableAsset } from './tradeApi'
+import { NumericText } from './NumericText'
 import { TokenIcon } from './TokenIcon'
 import { balanceKey, type TokenBalanceMap, type TokenBalanceState } from './useTokenBalance'
 
@@ -131,7 +132,7 @@ function TokenSelectorRow({ asset, balance, selected, onSelect }: { asset: Trada
           <span className="token-selector-dialog__name">{asset.name}</span>
         </span>
       </span>
-      <span className="token-selector-dialog__balance">{balance.label}</span>
+      <span className="token-selector-dialog__balance"><NumericText value={balance.label} /></span>
     </button>
   )
 }
