@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { FiMenu } from 'react-icons/fi'
 import { Link, NavLink } from 'react-router'
-import { Notice } from '@freecodexyz/ui'
+import { Notice, Scrim } from '@freecodexyz/ui'
 import { ConnectButton } from '../features/auth/ConnectButton'
 import { ThemeSwitch } from '../shared/theme/ThemeSwitch'
 import logoUrl from '../assets/fcf-logo.svg'
@@ -18,6 +18,8 @@ type TopNavbarProps = {
 }
 
 export function TopNavbar({ registryAccess }: TopNavbarProps) {
+  const mobileMenuId = useId()
+  const mobileMenuTitleId = useId()
   const [isMobile, setIsMobile] = useState(isMobileNav)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const showPageLinks = registryAccess === 'unlocked'
@@ -36,6 +38,17 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
     return () => navQuery.removeEventListener('change', handleChange)
   }, [])
 
+  useEffect(() => {
+    if (!isMobile || !isMenuOpen) return
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setIsMenuOpen(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isMenuOpen, isMobile])
+
   return (
     <header className={navClassName} data-accent="emerald">
       <Notice className="release-banner" role="status">
@@ -44,34 +57,18 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
       </Notice>
       <nav className={innerClassName} aria-label={isMobile ? 'Mobile navigation' : 'Main navigation'}>
         {isMobile && (
-          <div
-            className="top-navbar__mobile-menu"
-            onBlur={(event) => {
-              const nextTarget = event.relatedTarget
-              if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) setIsMenuOpen(false)
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') setIsMenuOpen(false)
-            }}
-          >
-            <button className="top-navbar__menu-button" type="button" aria-label="Open navigation menu" aria-haspopup="menu" aria-expanded={isMenuOpen} onClick={() => setIsMenuOpen((open) => !open)}>
+          <div className="top-navbar__mobile-menu">
+            <button
+              className="top-navbar__menu-button"
+              type="button"
+              aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-haspopup="dialog"
+              aria-expanded={isMenuOpen}
+              aria-controls={isMenuOpen ? mobileMenuId : undefined}
+              onClick={() => setIsMenuOpen((open) => !open)}
+            >
               <FiMenu aria-hidden="true" focusable="false" />
             </button>
-            {isMenuOpen && (
-              <div className="top-navbar__mobile-menu-panel" role="menu">
-                {showPageLinks && (
-                  <div className="top-navbar__page-links top-navbar__page-links--mobile" aria-label="Available pages">
-                    <NavLink className="top-navbar__page-link" to="/registry" role="menuitem" onClick={() => setIsMenuOpen(false)}>Registry</NavLink>
-                    <NavLink className="top-navbar__page-link" to="/trade" role="menuitem" onClick={() => setIsMenuOpen(false)}>Trade</NavLink>
-                    {MARKETPLACE_NAV_ENABLED && <NavLink className="top-navbar__page-link" to="/marketplace" role="menuitem" onClick={() => setIsMenuOpen(false)}>Marketplace</NavLink>}
-                  </div>
-                )}
-                <div className="top-navbar__mobile-actions">
-                  <ConnectButton />
-                  <ThemeSwitch />
-                </div>
-              </div>
-            )}
           </div>
         )}
         <Link className="top-navbar__brand" to="/registry" aria-label="FreeCode Registry">
@@ -91,6 +88,34 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
           </div>
         )}
       </nav>
+      {isMobile && isMenuOpen && (
+        <Scrim className="top-navbar__mobile-menu-scrim" onClick={() => setIsMenuOpen(false)}>
+          <div
+            id={mobileMenuId}
+            className="top-navbar__mobile-menu-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={mobileMenuTitleId}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header className="top-navbar__mobile-menu-top">
+              <h2 id={mobileMenuTitleId}>Menu</h2>
+              <button className="top-navbar__mobile-menu-close" type="button" onClick={() => setIsMenuOpen(false)} aria-label="Close navigation menu">×</button>
+            </header>
+            {showPageLinks && (
+              <div className="top-navbar__page-links top-navbar__page-links--mobile" aria-label="Available pages">
+                <NavLink className="top-navbar__page-link" to="/registry" onClick={() => setIsMenuOpen(false)}>Registry</NavLink>
+                <NavLink className="top-navbar__page-link" to="/trade" onClick={() => setIsMenuOpen(false)}>Trade</NavLink>
+                {MARKETPLACE_NAV_ENABLED && <NavLink className="top-navbar__page-link" to="/marketplace" onClick={() => setIsMenuOpen(false)}>Marketplace</NavLink>}
+              </div>
+            )}
+            <div className="top-navbar__mobile-actions">
+              <ConnectButton />
+              <ThemeSwitch />
+            </div>
+          </div>
+        </Scrim>
+      )}
     </header>
   )
 }

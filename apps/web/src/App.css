@@ -69,7 +69,6 @@
 }
 
 .top-navbar__mobile-menu {
-  position: relative;
   display: inline-flex;
   flex: 0 0 auto;
 }
@@ -95,32 +94,81 @@
   fill: currentColor;
 }
 
-.top-navbar__mobile-menu-panel {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + var(--space-2));
-  left: 0;
-  width: min(360px, calc(100vw - var(--space-8)));
-  padding: var(--space-2);
-  border: var(--bw) solid var(--rule);
+.top-navbar__mobile-menu-scrim {
+  align-items: flex-end;
+  padding: 0;
+}
+
+.top-navbar__mobile-menu-drawer {
+  width: 100%;
+  max-height: min(82svh, 520px);
+  display: grid;
+  grid-template-rows: auto auto auto;
+  overflow-y: auto;
+  border: var(--bw) solid var(--rule-strong);
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
   background: var(--bg);
+  color: var(--fg);
   box-shadow: var(--shadow-pop);
+  animation: token-selector-drawer var(--dur-slow) var(--ease);
+}
+
+.top-navbar__mobile-menu-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-bottom: var(--bw) solid var(--rule);
+}
+
+.top-navbar__mobile-menu-top h2 {
+  margin: 0;
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: var(--t-h3);
+  font-weight: var(--w-semibold);
+  line-height: var(--lh-snug);
+  letter-spacing: 0;
+}
+
+.top-navbar__mobile-menu-close {
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  padding: 0;
+  border: var(--bw) solid var(--rule-strong);
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
 }
 
 .top-navbar__page-links--mobile {
   flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-2) var(--space-3);
+  align-items: stretch;
+  gap: 0;
+  padding: var(--space-2) 0;
   border-bottom: var(--bw) solid var(--rule);
-  margin-bottom: var(--space-2);
+  margin-bottom: 0;
+}
+
+.top-navbar__page-links--mobile .top-navbar__page-link {
+  padding: var(--space-3) var(--space-4);
 }
 
 .top-navbar__mobile-actions {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--control-h-sm);
+  align-items: start;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  padding: var(--space-4);
 }
 
 .top-navbar__mobile-actions .connect-panel {
@@ -129,8 +177,11 @@
 }
 
 .top-navbar__mobile-actions .connect-menu__list {
+  position: static;
   right: auto;
   left: 0;
+  margin-top: var(--space-2);
+  box-shadow: none;
 }
 
 .top-navbar__logo {
