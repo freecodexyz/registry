@@ -8,7 +8,7 @@ import { ThemeSwitch } from '../shared/theme/ThemeSwitch'
 import logoUrl from '../assets/fcf-logo.svg'
 
 const MOBILE_NAV_QUERY = '(max-width: 720px)'
-const MARKETPLACE_NAV_ENABLED = false
+const MARKETPLACE_NAV_ENABLED = true;
 const NAV_ITEMS = [
   { to: '/registry', label: 'Registry', Icon: FiDatabase, enabled: true },
   { to: '/trade', label: 'Trade', Icon: FiRepeat, enabled: true },
@@ -152,7 +152,7 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
                 </button>
               </div>
               <div className="top-navbar__page-links" aria-label="Available pages">
-                {NAV_ITEMS.filter((item) => item.enabled !== false).map(({ to, label, Icon }) => (
+                {NAV_ITEMS.filter((item) => item.enabled).map(({ to, label, Icon }) => (
                   <NavLink key={to} className="top-navbar__page-link" to={to} aria-label={label} title={isSidebarCollapsed ? label : undefined}>
                     <Icon className="top-navbar__page-link-icon" aria-hidden="true" focusable="false" />
                     <span className="top-navbar__page-link-label">{label}</span>

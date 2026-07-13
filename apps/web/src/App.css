@@ -24,8 +24,9 @@
 
 #root:has(.top-navbar--sidebar) > .marketplace {
   width: calc(100% - var(--app-sidebar-width));
-  height: 100svh;
-  min-height: 100svh;
+  height: calc(100svh - var(--release-banner-height));
+  min-height: calc(100svh - var(--release-banner-height));
+  margin-top: var(--release-banner-height);
   margin-left: var(--app-sidebar-width);
   margin-right: 0;
 }
