@@ -10,7 +10,7 @@ import '../App.css'
 const Registry = lazy(() => import('../features/registry/Registry').then(({ Registry }) => ({ default: Registry })))
 const Trade = lazy(() => import('../features/trade/Trade').then(({ Trade }) => ({ default: Trade })))
 const Marketplace = lazy(() => import('../features/marketplace/Marketplace').then(({ Marketplace }) => ({ default: Marketplace })))
-const MARKETPLACE_ROUTE_ENABLED = false
+const MARKETPLACE_ROUTE_ENABLED = true;
 
 type AccessState = 'locked' | 'unlocked'
 
