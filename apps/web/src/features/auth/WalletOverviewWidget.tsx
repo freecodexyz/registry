@@ -1,10 +1,10 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { FiCopy, FiCreditCard, FiExternalLink, FiPower, FiShield } from 'react-icons/fi'
-import { formatUnits } from 'viem'
-import { useAccount, useBalance, useChainId, useConnect } from 'wagmi'
+import { useAccount, useChainId, useConnect } from 'wagmi'
 import { Button, Scrim } from '@freecodexyz/ui'
 import { chainLabel, explorerAddressUrl } from '../../shared/explorers'
 import { useAuthSession } from './useAuthSession'
+import { useWalletDollarValue, type WalletValueState } from './walletValueApi'
 
 type WalletOverviewWidgetProps = {
   collapsed?: boolean;
@@ -21,16 +21,6 @@ type WalletActionCardProps = {
 
 function shortAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
-}
-
-function formatNativeBalance(balance: bigint, decimals: number) {
-  const amount = Number(formatUnits(balance, decimals))
-  if (!Number.isFinite(amount)) return '--'
-
-  return new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: amount >= 1 ? 4 : 6,
-    minimumFractionDigits: 0,
-  }).format(amount)
 }
 
 function triggerLabel(isConnected: boolean, address: string | undefined, isSessionLoading: boolean) {
@@ -64,16 +54,8 @@ export function WalletOverviewWidget({ collapsed = false }: WalletOverviewWidget
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
   const displayAddress = isConnected ? (isSignedIn ? signedInAddress ?? address : address) : undefined
   const activeChainLabel = chainLabel(chainId)
-  const balanceQuery = useBalance({
-    ...(address ? { address } : {}),
-    query: { enabled: Boolean(isConnected && address) },
-  })
+  const walletValue = useWalletDollarValue(signedInAddress ?? address, Boolean(isConnected && isSignedIn))
   const hasConnectors = connectors.length > 0
-  const nativeBalanceLabel = balanceQuery.data
-    ? `${formatNativeBalance(balanceQuery.data.value, balanceQuery.data.decimals)} ${balanceQuery.data.symbol}`
-    : balanceQuery.isLoading
-      ? 'Loading'
-      : '--'
   const canSignIn = isConnected && !isSignedIn && isSignInReady && !isSigningIn && !isPreparingSignIn
   const signInDetail = isSigningIn
     ? 'Open wallet'
@@ -215,8 +197,7 @@ export function WalletOverviewWidget({ collapsed = false }: WalletOverviewWidget
             </header>
 
             <section className="wallet-overview-balance" aria-label="Wallet balance">
-              <strong className="wallet-overview-balance__value">{nativeBalanceLabel}</strong>
-              {balanceQuery.isError && <span className="wallet-overview-balance__error">Native balance unavailable</span>}
+              <WalletValueDisplay value={walletValue} />
             </section>
 
             <section className="wallet-overview-actions" aria-label="Wallet actions">
@@ -268,6 +249,18 @@ export function WalletOverviewWidget({ collapsed = false }: WalletOverviewWidget
         </Scrim>
       )}
     </div>
+  )
+}
+
+function WalletValueDisplay({ value }: { value: WalletValueState }) {
+  if (value.status !== 'ready') {
+    return <strong className="wallet-overview-balance__value">--</strong>
+  }
+
+  return (
+    <strong className="wallet-overview-balance__value">
+      ${value.dollars}.<span className="wallet-overview-balance__cents">{value.cents}</span>
+    </strong>
   )
 }
 

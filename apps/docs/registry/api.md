@@ -51,6 +51,7 @@ The exact route table is still evolving as the app is being built; treat this as
 | `POST /auth/verify` | Verify a SIWE message and start a session. |
 | `POST /auth/logout` | End the session. |
 | `GET /gate` | Check whether the current session holds the minimum gate-token balance. |
+| `GET /api/trade/wallet-value` | Compute the signed-in wallet's total USD value across configured tradable assets. Use `?refresh=true` to invalidate the in-memory wallet-value cache before recomputing. |
 
 The exact response shapes are defined inline in `apps/api/src/index.ts`. The same source defines the SSE payload shape (`RepoStreamPayload`).
 
@@ -80,6 +81,7 @@ SQLite (better-sqlite3). Tables:
 | `GATE_TOKEN_ADDRESS` | yes | ERC-20 used for the access gate. See [Access Gating](/registry/access). |
 | `GATE_TOKEN_MIN_BALANCE` | no | Minimum balance required to pass the gate. Defaults to `1`. |
 | `SWAP_ASSETS_FILE_PATH` | no | Path to a `.assets.json` file used by the swap API. If unset, startup loads the newest `*.assets.json` in the command working directory. |
+| `SWAP_RPC_URL` | no | RPC endpoint used to read wallet balances on the configured swap asset chain. If unset, viem uses the chain's default RPC transport. |
 
 ## Running locally
 

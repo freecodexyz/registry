@@ -21,6 +21,7 @@ import { AssetsLoader } from "./swaps/assets";
 import { SwapHandler } from "./swaps/handler";
 import { registerTradeRoutes } from "./swaps/routes";
 import { UniswapSwapProvider } from "./swaps/uniswap";
+import { createViemWalletValueBalanceReader, swapChain, WalletValueService } from "./swaps/wallet-value";
 
 const APP_NAME                      = "registry-api";
 const RIK_ADDRESS                   = process.env.CONTRACT_ADDRESS as `0x${string}`;
@@ -49,6 +50,7 @@ const EVENTS_SOCKET_PORT            = readPort(process.env.EVENTS_SOCKET_PORT, 3
 const UNISWAP_API_KEY               = process.env.UNISWAP_API_KEY;
 const UNISWAP_API_URL               = process.env.UNISWAP_API_URL;
 const SWAP_ASSETS_FILE_PATH         = process.env.SWAP_ASSETS_FILE_PATH;
+const SWAP_RPC_URL                  = process.env.SWAP_RPC_URL;
 
 // server can't start with these
 if (!RIK_ADDRESS)           die(new Error("RIK contract address is missing"));
@@ -81,7 +83,17 @@ const tradableAssets = await AssetsLoader.load({
     cwd: process.cwd(),
     envPath: SWAP_ASSETS_FILE_PATH,
 }).catch((err: unknown) => die(err));
-const swapHandler = new SwapHandler(new UniswapSwapProvider(UNISWAP_API_KEY, UNISWAP_API_URL));
+const uniswapProvider = new UniswapSwapProvider(UNISWAP_API_KEY, UNISWAP_API_URL);
+const swapHandler = new SwapHandler(uniswapProvider);
+const swapBalanceClient = createPublicClient({
+    chain: swapChain(tradableAssets.chainId),
+    transport: http(SWAP_RPC_URL),
+});
+const walletValue = new WalletValueService({
+    assets: tradableAssets,
+    quoteProvider: uniswapProvider,
+    balanceReader: createViemWalletValueBalanceReader(tradableAssets.chainId, swapBalanceClient),
+});
 
 try { registerOrigins(ALLOWED_ORIGINS); } catch (err) { die(err); }
 
@@ -319,6 +331,7 @@ registerTradeRoutes(app, {
     chainId: tradableAssets.chainId,
     handler: swapHandler,
     assets: tradableAssets,
+    walletValue,
     preHandler: requireApiAccess,
 });
 
@@ -430,7 +443,7 @@ registerRootRoute();
 function registerRootRoute(): void {
     app.get("/", async () => ({
         name: APP_NAME,
-        endpoints: ["/api/repos", "/api/markets", "/api/trade/assets", "/api/trade/swaps", "/api/auth/nonce", "/api/auth/verify"],
+        endpoints: ["/api/repos", "/api/markets", "/api/trade/assets", "/api/trade/wallet-value", "/api/trade/swaps", "/api/auth/nonce", "/api/auth/verify"],
     }));
 }
 

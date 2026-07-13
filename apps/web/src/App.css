@@ -2361,8 +2361,8 @@
 }
 
 .wallet-overview-dialog {
-  width: min(100%, 448px);
-  max-height: min(86svh, 680px);
+  width: min(100%, 392px);
+  max-height: min(92svh, 760px);
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   overflow: hidden;
@@ -2446,10 +2446,14 @@
   color: var(--fg);
   font-family: var(--mono);
   font-size: var(--t-h3);
-  font-weight: var(--w-semibold);
+  font-weight: var(--w-light);
   font-variant-numeric: tabular-nums;
   line-height: var(--lh-snug);
   letter-spacing: 0;
+}
+
+.wallet-overview-balance__cents {
+  color: var(--fg-dim);
 }
 
 .wallet-overview-actions {

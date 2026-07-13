@@ -4,11 +4,13 @@ import { isAddress } from "viem";
 import type { SwapHandler, WalletActionInput } from "./handler";
 import type { AssetsLoader } from "./assets";
 import type { HexAddress, SwapQuoteRequest, SwapTradeType } from "./types";
+import type { WalletValueService } from "./wallet-value";
 
 type RegisterTradeRoutesOptions = {
     chainId: number;
     handler: SwapHandler;
     assets: Pick<AssetsLoader, "list" | "isTradable">;
+    walletValue: Pick<WalletValueService, "getWalletValue">;
     preHandler?: preHandlerHookHandler;
 };
 
@@ -23,6 +25,18 @@ export function registerTradeRoutes(app: FastifyInstance, options: RegisterTrade
         return {
             chainId: options.chainId,
             assets: await options.assets.list(),
+        };
+    });
+
+    app.get<{ Querystring: { refresh?: string | boolean } }>("/api/trade/wallet-value", routeOptions, async (req) => {
+        const walletAddress = req.session.get("address");
+        if (!walletAddress) throw httpErrors.unauthorized("not signed in");
+
+        return {
+            walletValue: await options.walletValue.getWalletValue({
+                walletAddress,
+                refresh: readRefresh(req.query.refresh),
+            }),
         };
     });
 
@@ -120,6 +134,13 @@ function readSlippageTolerance(value: unknown): number {
     const slippage = Number(value);
     if (!Number.isFinite(slippage) || slippage < 0.01 || slippage > 50) throw httpErrors.badRequest("slippageTolerance must be between 0.01 and 50");
     return slippage;
+}
+
+function readRefresh(value: unknown): boolean {
+    if (value === undefined || value === null || value === "") return false;
+    if (value === true || value === "true" || value === "1") return true;
+    if (value === false || value === "false" || value === "0") return false;
+    throw httpErrors.badRequest("refresh must be true or false");
 }
 
 function readOptionalHex(value: unknown, name: string): HexAddress | undefined {
