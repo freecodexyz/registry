@@ -1,8 +1,9 @@
 import { useEffect, useId, useState } from 'react'
-import { FiBarChart2, FiChevronLeft, FiChevronRight, FiDatabase, FiMenu, FiRepeat, FiUser } from 'react-icons/fi'
+import { FiBarChart2, FiChevronLeft, FiChevronRight, FiDatabase, FiMenu, FiRepeat } from 'react-icons/fi'
 import { Link, NavLink } from 'react-router'
 import { Notice, Scrim } from '@freecodexyz/ui'
 import { ConnectButton } from '../features/auth/ConnectButton'
+import { WalletOverviewWidget } from '../features/auth/WalletOverviewWidget'
 import { ThemeSwitch } from '../shared/theme/ThemeSwitch'
 import logoUrl from '../assets/fcf-logo.svg'
 
@@ -25,12 +26,11 @@ type TopNavbarProps = {
 export function TopNavbar({ registryAccess }: TopNavbarProps) {
   const mobileMenuId = useId()
   const mobileMenuTitleId = useId()
-  const desktopWalletId = useId()
   const [isMobile, setIsMobile] = useState(isMobileNav)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [isDesktopWalletOpen, setIsDesktopWalletOpen] = useState(false)
   const showPageLinks = registryAccess === 'unlocked'
+  const useGateWalletControl = registryAccess === 'locked'
   const useOriginalTopbar = isMobile || registryAccess === 'locked'
   const navClassName = useOriginalTopbar
     ? `top-navbar ${isMobile ? 'top-navbar--mobile' : 'top-navbar--desktop'}`
@@ -44,7 +44,6 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
 
     function handleChange(event: MediaQueryListEvent) {
       setIsMenuOpen(false)
-      setIsDesktopWalletOpen(false)
       setIsMobile(event.matches)
     }
 
@@ -89,7 +88,6 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
   }, [useOriginalTopbar])
 
   function toggleSidebar() {
-    setIsDesktopWalletOpen(false)
     setIsSidebarCollapsed((collapsed) => !collapsed)
   }
 
@@ -130,7 +128,7 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
               )}
               {!isMobile && (
                 <div className="top-navbar__actions">
-                  <ConnectButton />
+                  {useGateWalletControl ? <ConnectButton /> : <WalletOverviewWidget />}
                   <ThemeSwitch />
                 </div>
               )}
@@ -163,38 +161,7 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
               </div>
               <div className="top-navbar__sidebar-bottom">
                 <div className="top-navbar__actions">
-                  {isSidebarCollapsed ? (
-                    <div
-                      className="top-navbar__wallet-menu"
-                      onBlur={(event) => {
-                        const nextTarget = event.relatedTarget
-                        if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) setIsDesktopWalletOpen(false)
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Escape') setIsDesktopWalletOpen(false)
-                      }}
-                    >
-                      <button
-                        className="top-navbar__icon-button"
-                        type="button"
-                        aria-label="Wallet"
-                        aria-haspopup="dialog"
-                        aria-expanded={isDesktopWalletOpen}
-                        aria-controls={isDesktopWalletOpen ? desktopWalletId : undefined}
-                        title="Wallet"
-                        onClick={() => setIsDesktopWalletOpen((open) => !open)}
-                      >
-                        <FiUser aria-hidden="true" focusable="false" />
-                      </button>
-                      {isDesktopWalletOpen && (
-                        <div id={desktopWalletId} className="top-navbar__wallet-popover" role="dialog" aria-label="Wallet actions">
-                          <ConnectButton />
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <ConnectButton />
-                  )}
+                  <WalletOverviewWidget collapsed={isSidebarCollapsed} />
                   <ThemeSwitch />
                 </div>
               </div>
@@ -224,7 +191,7 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
               </div>
             )}
             <div className="top-navbar__mobile-actions">
-              <ConnectButton />
+              {useGateWalletControl ? <ConnectButton /> : <WalletOverviewWidget />}
               <ThemeSwitch />
             </div>
           </div>
