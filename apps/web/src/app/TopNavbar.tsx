@@ -161,7 +161,7 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
               </div>
               <div className="top-navbar__sidebar-bottom">
                 <div className="top-navbar__actions">
-                  <WalletOverviewWidget collapsed={isSidebarCollapsed} />
+                  <WalletOverviewWidget collapsed={isSidebarCollapsed} placement={isSidebarCollapsed ? 'floating' : 'inline'} />
                   <ThemeSwitch />
                 </div>
               </div>
