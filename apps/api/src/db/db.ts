@@ -2,9 +2,9 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-const BASE_SEPOLIA_CHAIN_ID = 84532;
-const configuredChainId = Number(process.env.CHAIN_ID ?? BASE_SEPOLIA_CHAIN_ID);
-const DEFAULT_CHAIN_ID = Number.isFinite(configuredChainId) && configuredChainId > 0 ? configuredChainId : BASE_SEPOLIA_CHAIN_ID;
+const BASE_CHAIN_ID = 8453;
+const configuredChainId = Number(process.env.CHAIN_ID ?? BASE_CHAIN_ID);
+const DEFAULT_CHAIN_ID = Number.isFinite(configuredChainId) && configuredChainId > 0 ? configuredChainId : BASE_CHAIN_ID;
 
 function initDbPath(dbPath: string): string {
   mkdirSync(dirname(dbPath), { recursive: true }); return dbPath;

@@ -143,18 +143,18 @@ locals {
 
   default_app_env = {
     ALLOWED_ORIGINS               = jsonencode([local.web_origin])
-    CONTRACT_ADDRESS              = "0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac"
-    CHAIN_ID                      = "84532"
+    CONTRACT_ADDRESS              = ""
+    CHAIN_ID                      = "8453"
     EVENTS_SOCKET_PORT            = "3055"
-    GATE_TOKEN_ADDRESS            = ""
+    GATE_TOKEN_ADDRESS            = "0x67A7CA081Dc79B45fD1FA059Cd3b8dCcA779Aba3"
     GATE_TOKEN_MIN_BALANCE        = ""
     GITHUB_TOKEN                  = ""
     LAUNCHER_ADDRESS              = ""
-    RPC_URL                       = "https://base-sepolia.g.alchemy.com/v2/hddkKdsOJYhbm256XDEce"
+    RPC_URL                       = "https://mainnet.base.org"
     SESSION_KEY                   = ""
     SESSION_COOKIE_SECURE         = "false"
     SIWE_DOMAIN                   = local.web_host
-    STATE_VIEW                    = "0x571291b572ed32ce6751a2cb2486ebee8defb9b4"
+    STATE_VIEW                    = "0xa3c0c9b65bad0b08107aa264b0f3db444b867a71"
     SWAP_ASSETS_FILE_PATH         = ""
     UNISWAP_API_KEY               = ""
     UNISWAP_API_URL               = "https://trade-api.gateway.uniswap.org/v1"

@@ -4,7 +4,7 @@ import { EventEmitter } from "node:events";
 import { exit } from "node:process";
 import cors from "@fastify/cors";
 import { createPublicClient, http, isAddress, parseAbiItem, erc20Abi } from "viem";
-import { baseSepolia } from "viem/chains";
+import { base } from "viem/chains";
 import { httpErrors } from "@fastify/sensible";
 import { generateNonce, SiweMessage } from "siwe";
 import secureSession from "@fastify/secure-session";
@@ -25,10 +25,10 @@ import { createViemWalletValueBalanceReader, swapChain, WalletValueService } fro
 
 const APP_NAME                      = "registry-api";
 const RIK_ADDRESS                   = process.env.CONTRACT_ADDRESS as `0x${string}`;
-const RPC_URL                       = (!process.env.RPC_URL || process.env.RPC_URL === "") ? "https://base-sepolia-rpc.publicnode.com" : process.env.RPC_URL;
-const BASE_SEPOLIA_STATE_VIEW       = "0x571291b572ed32ce6751a2cb2486ebee8defb9b4";
-const STATE_VIEW                    = (!process.env.STATE_VIEW || process.env.STATE_VIEW === "") ? BASE_SEPOLIA_STATE_VIEW : process.env.STATE_VIEW as `0x${string}`;
-const DEFAULT_LIST_BLOCK_RANGE      = 1_200_000n; // backfill ~1 month
+const RPC_URL                       = (!process.env.RPC_URL || process.env.RPC_URL === "") ? base.rpcUrls.default.http[0] : process.env.RPC_URL;
+const BASE_STATE_VIEW               = "0xa3c0c9b65bad0b08107aa264b0f3db444b867a71";
+const STATE_VIEW                    = (!process.env.STATE_VIEW || process.env.STATE_VIEW === "") ? BASE_STATE_VIEW : process.env.STATE_VIEW as `0x${string}`;
+const DEFAULT_LIST_BLOCK_RANGE      = 1000n; // backfill ~1 month
 const ALLOWED_ORIGINS               = ["http://localhost:5173"];
 const SIWE_DOMAIN                   = (!process.env.SIWE_DOMAIN || process.env.SIWE_DOMAIN === "") ? "localhost:5173" : process.env.SIWE_DOMAIN;
 const SESSION_KEY                   = (!process.env.SESSION_KEY || process.env.SESSION_KEY === "") ? randomBytes(32) : process.env.SESSION_KEY;
@@ -41,7 +41,7 @@ const GATE_CHECK_TTL_MS             = 15_000;
 const DEFAULT_PAGE_SIZE             = 50;
 const MAX_PAGE_SIZE                 = 200;
 const SHOULD_RUN_INDEXER            = process.env.INDEXER === "1" || process.env.INDEXER?.toLowerCase() === "true";
-const CHAIN_ID                      = baseSepolia.id;
+const CHAIN_ID                      = base.id;
 const LAUNCHER_ADDRESS              = process.env.LAUNCHER_ADDRESS as `0x${string}` | undefined;
 const V4_POOL_MANAGER               = process.env.V4_POOL_MANAGER as `0x${string}` | undefined;
 const EVENTS_SOCKET_HOST            = (!process.env.EVENTS_SOCKET_HOST || process.env.EVENTS_SOCKET_HOST === "") ? "127.0.0.1" : process.env.EVENTS_SOCKET_HOST;
@@ -56,8 +56,6 @@ const SWAP_RPC_URL                  = process.env.SWAP_RPC_URL;
 if (!RIK_ADDRESS)           die(new Error("RIK contract address is missing"));
 if (!GATE_TOKEN_ADDRESS)    die(new Error("gate token address is missing"));
 if (!GITHUB_TOKEN)          die(new Error("github token is missing"));
-if (!LAUNCHER_ADDRESS)      die(new Error("Launcher address missing"));
-if (!V4_POOL_MANAGER)       die(new Error("V4 Pool Manager address is missing"));
 
 function readPort(value: string | undefined, fallback: number, name: string): number {
     if (!value || value === "") return fallback;
@@ -68,7 +66,7 @@ function readPort(value: string | undefined, fallback: number, name: string): nu
 }
 
 const client = createPublicClient({
-    chain: baseSepolia,
+    chain: base,
     transport: http(RPC_URL),
 });
 

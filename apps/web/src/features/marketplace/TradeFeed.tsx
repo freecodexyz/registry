@@ -215,7 +215,7 @@ function TradeFeedRow({ index, style, ariaAttributes, trades, chainId, baseToken
           <span>:</span>
           <span className="trade-feed__number">{time.seconds}</span>
         </time>
-        <a className="trade-feed__tx-link" href={explorerTxUrl(chainId, trade.txHash)} target="_blank" rel="noreferrer" aria-label={`Open ${sideLabel} transaction on Base Sepolia explorer`}>
+        <a className="trade-feed__tx-link" href={explorerTxUrl(chainId, trade.txHash)} target="_blank" rel="noreferrer" aria-label={`Open ${sideLabel} transaction on Base explorer`}>
           <FiExternalLink aria-hidden="true" focusable="false" />
         </a>
       </span>

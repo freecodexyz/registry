@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import { AssetsLoader } from "./assets";
 
-const CHAIN_ID = 84532;
+const CHAIN_ID = 1;
 const BASE_CHAIN_ID = 8453;
 const ETH = "0x0000000000000000000000000000000000000000" as const;
 const WETH = "0x4200000000000000000000000000000000000006" as const;

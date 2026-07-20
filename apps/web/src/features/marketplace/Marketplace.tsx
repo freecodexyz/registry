@@ -4,7 +4,7 @@ import { Allotment } from 'allotment'
 import 'allotment/dist/style.css'
 import { useSearchParams } from 'react-router'
 import { isAddress, type Address } from 'viem'
-import { baseSepolia } from 'wagmi/chains'
+import { base } from 'wagmi/chains'
 import { OrderEntry } from './OrderEntry'
 import { OrderBook } from './OrderBook'
 import { TradeFeed } from './TradeFeed'
@@ -101,7 +101,7 @@ export function Marketplace() {
     repoId: market.repoId,
     baseTokenSymbol: market.symbol,
     tokenAddress: market.asset,
-    chainId: baseSepolia.id,
+    chainId: base.id,
   }))
 
   function selectMarket(repoId: string) {
@@ -122,7 +122,7 @@ export function Marketplace() {
                     repoId: activeMarket.repoId,
                     baseTokenSymbol: activeMarket.symbol,
                     tokenAddress: activeMarket.asset,
-                    chainId: baseSepolia.id,
+                    chainId: base.id,
                   }}
                   markets={indexedMarkets}
                   quoteTokenSymbol={demoMarket.quoteTokenSymbol}
@@ -135,7 +135,7 @@ export function Marketplace() {
                     baseTokenSymbol: activeMarket.symbol,
                     quoteTokenSymbol: demoMarket.quoteTokenSymbol,
                     tokenAddress: activeMarket.asset,
-                    chainId: baseSepolia.id,
+                    chainId: base.id,
                   }}
                   ethUsdPriceState={ethUsdPriceState}
                 />
@@ -171,7 +171,7 @@ export function Marketplace() {
                     market={{
                       repoId: activeMarket.repoId,
                       baseTokenSymbol: activeMarket.symbol,
-                      chainId: baseSepolia.id,
+                      chainId: base.id,
                     }}
                     ethUsdPriceState={ethUsdPriceState}
                   />

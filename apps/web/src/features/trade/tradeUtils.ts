@@ -1,11 +1,11 @@
-import { base, baseSepolia } from 'wagmi/chains'
+import { base } from 'wagmi/chains'
 import { formatUnits, parseUnits, type Hex } from 'viem'
 import type { TradableAsset } from './tradeApi'
 
 export const SLIPPAGE_TOLERANCE = 0.5
 export const NATIVE_TOKEN_ADDRESS = '0x0000000000000000000000000000000000000000'
 
-export type SupportedSwapChainId = typeof base.id | typeof baseSepolia.id
+export type SupportedSwapChainId = typeof base.id
 
 export function sanitizeDecimalInput(value: string): string {
   const decimalOnly = value.replace(/[^\d.]/g, '')
@@ -80,19 +80,18 @@ export function isNativeToken(asset: TradableAsset): boolean {
 }
 
 export function readSupportedSwapChainId(chainId: number): SupportedSwapChainId {
-  if (chainId === base.id || chainId === baseSepolia.id) return chainId
+  if (chainId === base.id) return chainId
   throw new Error(`unsupported chain ${chainId}`)
 }
 
 export function readOptionalSupportedSwapChainId(chainId: number | null): SupportedSwapChainId | null {
   if (chainId === null) return null
-  if (chainId === base.id || chainId === baseSepolia.id) return chainId
+  if (chainId === base.id) return chainId
   return null
 }
 
 export function networkName(chainId: number | null): string {
   if (chainId === base.id) return 'Base'
-  if (chainId === baseSepolia.id) return 'Base Sepolia'
   return 'Configured network'
 }
 

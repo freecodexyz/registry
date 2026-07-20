@@ -95,7 +95,7 @@ export function TopNavbar({ registryAccess }: TopNavbarProps) {
     <>
       <header className={navClassName} data-accent="emerald">
         <Notice className="release-banner" role="status">
-          <span className="release-banner__copy">Registry is still in alpha and currently live on Base Sepolia Testnet.</span>
+          <span className="release-banner__copy">Registry is still in alpha and currently live on Base Mainnet.</span>
           <a className="release-banner__link" href="https://docs.freecodefund.xyz/guide/troubleshooting#need-more-help">Report an issue or bug</a>
         </Notice>
         <nav className={innerClassName} aria-label={isMobile ? 'Mobile navigation' : 'Main navigation'}>

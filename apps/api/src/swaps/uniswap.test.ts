@@ -18,7 +18,7 @@ describe("UniswapSwapProvider", () => {
         }));
 
         const result = await provider.checkApproval({
-            chainId: 84532,
+            chainId: 8453,
             walletAddress: ACCOUNT,
             token: TOKEN_IN,
             amount: "1000000",
@@ -29,7 +29,7 @@ describe("UniswapSwapProvider", () => {
         expect(calls).toHaveLength(1);
         expect(calls[0]?.url.href).toBe("https://example.test/v1/check_approval");
         expect(readBody(calls[0])).toMatchObject({
-            chainId: 84532,
+            chainId: 8453,
             walletAddress: ACCOUNT,
             token: TOKEN_IN,
             amount: "1000000",
@@ -38,7 +38,7 @@ describe("UniswapSwapProvider", () => {
 
     it("rejects malformed swap transactions at the response boundary", async () => {
         const provider = new UniswapSwapProvider("key", "https://example.test/v1/", fetchStub([], {
-            swap: { to: ROUTER, from: ACCOUNT, value: "0", chainId: 84532 },
+            swap: { to: ROUTER, from: ACCOUNT, value: "0", chainId: 8453 },
         }));
 
         await expectProviderError(
@@ -116,7 +116,7 @@ async function expectProviderError(promise: Promise<unknown>, code: string): Pro
 
 function quoteRequest(): SwapQuoteRequest {
     return {
-        chainId: 84532,
+        chainId: 8453,
         tokenIn: TOKEN_IN,
         tokenOut: TOKEN_OUT,
         amount: "1000000",
@@ -134,6 +134,6 @@ function tx(input: { to: HexAddress; from: HexAddress; data: HexAddress }): Tran
         from: input.from,
         data: input.data,
         value: "0",
-        chainId: 84532,
+        chainId: 8453,
     };
 }

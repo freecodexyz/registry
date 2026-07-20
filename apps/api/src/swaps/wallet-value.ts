@@ -1,6 +1,6 @@
 import { erc20Abi } from "viem";
 import type { Chain } from "viem";
-import { base, baseSepolia } from "viem/chains";
+import { base } from "viem/chains";
 import type { TradableAsset } from "./assets";
 import { NATIVE_TOKEN_ADDRESS, type HexAddress, type SwapProvider, type SwapQuoteRequest } from "./types";
 
@@ -293,7 +293,6 @@ async function readTokenBalancesIndividually(client: ViemBalanceClient, walletAd
 
 export function swapChain(chainId: number): Chain {
     if (chainId === base.id) return base;
-    if (chainId === baseSepolia.id) return baseSepolia;
     throw new Error(`unsupported swap asset chain ${chainId}`);
 }
 

@@ -2,14 +2,14 @@ services:
   api:
     build: { context: ., dockerfile: apps/api/Dockerfile }
     environment:
-      CONTRACT_ADDRESS:       ${CONTRACT_ADDRESS:-0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac}
+      CONTRACT_ADDRESS:       ${CONTRACT_ADDRESS}
       LAUNCHER_ADDRESS:       ${LAUNCHER_ADDRESS}
       V4_POOL_MANAGER:        ${V4_POOL_MANAGER}
-      STATE_VIEW:             ${STATE_VIEW:-0x571291b572ed32ce6751a2cb2486ebee8defb9b4}
-      CHAIN_ID:               ${CHAIN_ID:-84532}
+      STATE_VIEW:             ${STATE_VIEW:-0xa3c0c9b65bad0b08107aa264b0f3db444b867a71}
+      CHAIN_ID:               ${CHAIN_ID:-8453}
       GATE_TOKEN_ADDRESS:     ${GATE_TOKEN_ADDRESS}
       GATE_TOKEN_MIN_BALANCE: ${GATE_TOKEN_MIN_BALANCE}
-      RPC_URL:                ${RPC_URL:-https://base-sepolia-rpc.publicnode.com}
+      RPC_URL:                ${RPC_URL:-https://mainnet.base.org}
       SIWE_DOMAIN:            ${SIWE_DOMAIN:-}
       SESSION_KEY:            ${SESSION_KEY:-}
       SESSION_COOKIE_SECURE:  ${SESSION_COOKIE_SECURE:-}
@@ -29,14 +29,14 @@ services:
   indexer:
     build: { context: ., dockerfile: apps/api/Dockerfile }
     environment:
-      CONTRACT_ADDRESS:       ${CONTRACT_ADDRESS:-0xc03a52cD0EB2d5d456e64bda0557Db04608d1eac}
+      CONTRACT_ADDRESS:       ${CONTRACT_ADDRESS}
       LAUNCHER_ADDRESS:       ${LAUNCHER_ADDRESS}
       V4_POOL_MANAGER:        ${V4_POOL_MANAGER}
-      STATE_VIEW:             ${STATE_VIEW:-0x571291b572ed32ce6751a2cb2486ebee8defb9b4}
-      CHAIN_ID:               ${CHAIN_ID:-84532}
+      STATE_VIEW:             ${STATE_VIEW:-0xa3c0c9b65bad0b08107aa264b0f3db444b867a71}
+      CHAIN_ID:               ${CHAIN_ID:-8453}
       GATE_TOKEN_ADDRESS:     ${GATE_TOKEN_ADDRESS}
       GATE_TOKEN_MIN_BALANCE: ${GATE_TOKEN_MIN_BALANCE}
-      RPC_URL:                ${RPC_URL:-https://base-sepolia-rpc.publicnode.com}
+      RPC_URL:                ${RPC_URL:-https://mainnet.base.org}
       SIWE_DOMAIN:            ${SIWE_DOMAIN:-}
       SESSION_KEY:            ${SESSION_KEY:-}
       SESSION_COOKIE_SECURE:  ${SESSION_COOKIE_SECURE:-}

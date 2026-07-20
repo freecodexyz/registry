@@ -1,13 +1,11 @@
-import { base, baseSepolia, sepolia } from 'wagmi/chains'
+import { base } from 'wagmi/chains'
 
 const EXPLORERS: Record<number, { name: string; baseUrl: string }> = {
-  [sepolia.id]: { name: 'Sepolia', baseUrl: 'https://sepolia.etherscan.io' },
   [base.id]: { name: 'Base', baseUrl: 'https://basescan.org' },
-  [baseSepolia.id]: { name: 'Base Sepolia', baseUrl: 'https://sepolia.basescan.org' },
 }
 
 function explorerFor(chainId: number) {
-  return EXPLORERS[chainId] ?? EXPLORERS[baseSepolia.id]
+  return EXPLORERS[chainId] ?? EXPLORERS[base.id]
 }
 
 export function chainLabel(chainId: number) {

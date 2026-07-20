@@ -1,12 +1,10 @@
 import { db } from "./db/db";
-import { client, RIK_ADDRESS, RepoRegisteredEvent, MarketLaunchedEvent, SwapEvent, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID, LAUNCHER_ADDRESS, V4_POOL_MANAGER } from "./index";
+import { client, RIK_ADDRESS, RepoRegisteredEvent, DEFAULT_LIST_BLOCK_RANGE, CHAIN_ID } from "./index";
 import { getGhClient } from "./shared/github";
 import { EventsSocket, type EventMessage } from "./shared/events-socket";
 import { BlockCheckpointStore } from "./indexer/checkpoint";
 import { IndexerEngine } from "./indexer/engine";
 import { LogsFetcher } from "./indexer/fetch-logs";
-import { MarketLaunchIndexer } from "./indexer/market-launches";
-import { PoolSwapIndexer } from "./indexer/pool-swaps";
 import { RepoRegistrationIndexer } from "./indexer/repo-registrations";
 
 const POLL_MS   = 12_000;
@@ -39,23 +37,10 @@ const repoRegistrations = new RepoRegistrationIndexer({
     github: gh,
     publishEventMessage,
 });
-const marketLaunches = new MarketLaunchIndexer({
-    address: LAUNCHER_ADDRESS,
-    event: MarketLaunchedEvent,
-    logsFetcher,
-    receiptClient: client,
-});
-const poolSwaps = new PoolSwapIndexer({
-    address: V4_POOL_MANAGER,
-    event: SwapEvent,
-    logsFetcher,
-    blockClient: client,
-    publishEventMessage,
-});
 const indexer = new IndexerEngine({
     client,
     checkpoint,
-    steps: [repoRegistrations, marketLaunches, poolSwaps],
+    steps: [repoRegistrations],
 });
 
 function publishEventMessage(message: EventMessage): void {

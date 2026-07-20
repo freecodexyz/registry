@@ -99,7 +99,7 @@ function providerStub(options: {
 
 function swapRequest(): SwapQuoteRequest {
     return {
-        chainId: 84532,
+        chainId: 8453,
         tokenIn: TOKEN_IN,
         tokenOut: TOKEN_OUT,
         amount: "1000000",
@@ -117,7 +117,7 @@ function tx(input: { to: HexAddress; from: HexAddress; data: HexAddress }): Tran
         from: input.from,
         data: input.data,
         value: "0",
-        chainId: 84532,
+        chainId: 8453,
     };
 }
 
