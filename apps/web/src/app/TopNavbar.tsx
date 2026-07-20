@@ -8,7 +8,7 @@ import { ThemeSwitch } from '../shared/theme/ThemeSwitch'
 import logoUrl from '../assets/fcf-logo.svg'
 
 const MOBILE_NAV_QUERY = '(max-width: 720px)'
-const MARKETPLACE_NAV_ENABLED = true;
+const MARKETPLACE_NAV_ENABLED = false;
 const NAV_ITEMS = [
   { to: '/registry', label: 'Registry', Icon: FiDatabase, enabled: true },
   { to: '/trade', label: 'Trade', Icon: FiRepeat, enabled: true },
